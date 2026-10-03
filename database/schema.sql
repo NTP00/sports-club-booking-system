@@ -1,0 +1,2 @@
+-- Sports Club & Facility Booking System
+-- Database schema will be defined here.
