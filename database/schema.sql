@@ -1,7 +1,6 @@
 -- =============================================
 -- Sports Club & Facility Booking System
 -- Database Schema (SQL Server / T-SQL)
--- Based on the final EER diagram
 -- =============================================
 
 IF DB_ID('sports_club') IS NULL
