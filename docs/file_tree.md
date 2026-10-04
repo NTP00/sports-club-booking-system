@@ -1,7 +1,26 @@
-# Full source file tree
+# Repository file structure
+
+โปรเจกต์หลักอยู่ที่ root ของ repository; ชุดเริ่มต้นเดิมอยู่ใน `archive/initial-scaffold/` และเก็บไว้เพื่ออ้างอิงประวัติ
 
 ```text
-sports-club-booking/
+sports-club-booking-system/
+  .env.example
+  .gitignore
+  README.md
+  archive/
+    README.md
+    initial-scaffold/
+      README.snapshot.md
+      backend/
+        .gitkeep
+      database/
+        queries.sql
+        schema.sql
+        seed.sql
+      docs/
+        .gitkeep
+      frontend/
+        .gitkeep
   database/
     data.sql
     logic.sql
@@ -11,21 +30,24 @@ sports-club-booking/
     schema.sql
     tests.sql
   docs/
+    concurrency_test.md
+    data_dictionary.md
+    design_decisions.md
+    file_tree.md
+    index_rationale.md
+    integrity_constraints.md
+    mock_data_counts.json
     screenshots/
       booking_mobile_preview.png
       booking_preview.png
       dashboard_preview.png
-    concurrency_test.md
-    data_dictionary.md
-    design_decisions.md
-    index_rationale.md
-    integrity_constraints.md
-    mock_data_counts.json
     submission_support.md
     test_case_inventory.md
     third_party_notices.md
     traceability_matrix.md
     validation_results.md
+  package-lock.json
+  package.json
   scripts/
     generate_mock_data.py
     run_sql_tests.js
@@ -33,6 +55,7 @@ sports-club-booking/
     test_concurrency.js
     verify_database.js
   src/
+    app.js
     config/
       database.js
       schema.json
@@ -59,26 +82,20 @@ sports-club-booking/
     services/
       club.js
     views/
-      partials/
-        footer.ejs
-        header.ejs
-        table.ejs
       booking.ejs
       dashboard.ejs
       detail.ejs
       error.ejs
       form.ejs
       list.ejs
+      partials/
+        footer.ejs
+        header.ejs
+        table.ejs
       reports.ejs
-    app.js
   tests/
     validation.test.js
     web.test.js
-  .env.example
-  .gitignore
-  README.md
-  package-lock.json
-  package.json
 ```
 
-node_modules ไม่รวมใน ZIP ใช้ npm ci ติดตั้งตาม package-lock.json
+ไม่รวม `.env`, `node_modules/`, `*.log`, `coverage/`, `__pycache__/`, `.DS_Store` ใน Git ใช้ `npm ci` ที่ root เพื่อติดตั้งตาม `package-lock.json`
