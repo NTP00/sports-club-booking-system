@@ -1,0 +1,34 @@
+<%- include('partials/header') %>
+<p class="subtitle">จองสนาม เลือกอุปกรณ์ และบันทึกการชำระเงินในรายการเดียว</p>
+<form method="post" class="booking-form" id="booking-form">
+<input type="hidden" name="_csrf" value="<%= csrf %>">
+<section class="panel"><h2>1. สนามและเวลา</h2><div class="form-grid">
+  <div class="field"><label for="member_id">สมาชิก *</label><select id="member_id" name="member_id" required><option value="">เลือกสมาชิก</option><% for(const m of lookups.members) { %><option value="<%= m.id %>"><%= m.label %> (<%= m.status %>)</option><% } %></select></div>
+  <div class="field"><label for="court_id">สนาม *</label><select id="court_id" name="court_id" required><option value="">เลือกสนาม</option><% for(const c of lookups.courts) { %><option value="<%= c.id %>" data-rate="<%= c.hourly_rate %>"><%= c.label %> • <%= c.hourly_rate %> บาท/ชม. (<%= c.status %>)</option><% } %></select></div>
+  <div class="field"><label for="booking_date">วันที่จอง *</label><input type="date" id="booking_date" name="booking_date" min="1900-01-01" max="2099-12-31" required></div>
+  <div class="field"><label for="start_time">เวลาเริ่ม *</label><input type="time" id="start_time" name="start_time" value="09:00" step="1" required></div>
+  <div class="field"><label for="end_time">เวลาสิ้นสุด *</label><input type="time" id="end_time" name="end_time" value="10:00" step="1" required></div>
+  <div class="field"><label for="total_amount">ยอดจองสุดท้าย (บาท)</label><input type="number" id="total_amount" name="total_amount" min="0" max="99999999.99" step="0.01" placeholder="ว่าง = ใช้ราคาคำนวณแนะนำ"><small id="suggested-booking" class="muted"></small></div>
+</div></section>
+<section class="panel"><h2>2. อุปกรณ์ (เลือกได้หลายประเภท)</h2><p class="muted">ค่าเช่าต่อชิ้นต่อวัน รวมวันเริ่มและวันกำหนดคืน ช่องยอดเช่าว่าง = ใช้ยอดแนะนำ</p>
+  <div id="equipment-items"></div><button type="button" class="secondary" id="add-equipment">+ เพิ่มอุปกรณ์</button>
+  <template id="equipment-template"><div class="rental-item form-grid">
+    <div class="field"><label>อุปกรณ์</label><select data-field="equipment_id"><option value="">ไม่เลือก</option><% for(const e of lookups.equipment) { %><option value="<%= e.id %>" data-rate="<%= e.rental_rate %>"><%= e.label %> • <%= e.rental_rate %> บาท/ชิ้น/วัน (<%= e.status %>)</option><% } %></select></div>
+    <div class="field"><label>จำนวน</label><input data-field="quantity" type="number" min="1" step="1" value="1" max="2147483647"></div>
+    <div class="field"><label>วันเริ่มเช่า</label><input data-field="rental_date" type="date" min="1900-01-01" max="2099-12-31"></div>
+    <div class="field"><label>กำหนดคืน</label><input data-field="due_date" type="date" min="1900-01-01" max="2099-12-31"></div>
+    <div class="field"><label>ยอดเช่าสุดท้าย (บาท)</label><input data-field="total_amount" type="number" min="0" max="99999999.99" step="0.01"><small class="rental-suggestion muted"></small></div>
+    <div class="field"><label>เลขอ้างอิงการชำระค่าเช่า</label><input data-field="transaction_ref" maxlength="100" type="text"></div>
+    <button type="button" class="danger remove-equipment">นำออก</button>
+  </div></template>
+  <noscript>เปิด JavaScript เพื่อเพิ่มอุปกรณ์ การจองสนามอย่างเดียวยังทำได้</noscript>
+</section>
+<section class="panel"><h2>3. การชำระเงิน</h2><div class="form-grid">
+  <div class="field"><label for="payment_method">วิธีชำระ *</label><select id="payment_method" name="payment_method" required><option value="cash">เงินสด</option><option value="bank_transfer">โอนธนาคาร</option><option value="card">บัตร</option></select></div>
+  <div class="field"><label for="booking_transaction_ref">เลขอ้างอิงค่าจองสนาม</label><input id="booking_transaction_ref" name="booking_transaction_ref" maxlength="100"><small class="muted">แต่ละ Payment ต้องใช้เลขอ้างอิงแยกกันเมื่อมีค่า</small></div>
+</div><label class="checkbox"><input type="checkbox" name="pay_now" value="1" checked> บันทึกว่าชำระสำเร็จแล้ว</label>
+<p class="notice">ระบบบันทึก Payment ไม่มีการตัดเงินจริงหรือเชื่อม Payment Gateway ถ้าคิดยอดเป็น 0 จะไม่สร้าง Payment</p>
+<button type="submit">ยืนยันการจอง</button><a class="button secondary" href="/court_bookings">กลับรายการ</a>
+</section>
+</form>
+<%- include('partials/footer') %>

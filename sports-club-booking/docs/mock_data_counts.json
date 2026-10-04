@@ -1,0 +1,11 @@
+{
+  "facilities": 20,
+  "courts": 40,
+  "members": 600,
+  "equipment": 40,
+  "staff": 25,
+  "court_bookings": 1200,
+  "equipment_rentals": 800,
+  "payments": 1850,
+  "maintenance": 40
+}

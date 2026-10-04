@@ -1,0 +1,13 @@
+<div class="table-wrap">
+<table>
+  <thead><tr><% for (const c of columns) { %><th><%= labels[c]||c %></th><% } %><% if(table) { %><th>จัดการ</th><% } %></tr></thead>
+  <tbody>
+    <% if(!rows.length) { %><tr><td colspan="<%= columns.length+(table?1:0) %>" class="empty">ไม่มีข้อมูล</td></tr><% } %>
+    <% for (const row of rows) { %>
+      <tr><% for (const c of columns) { const type=table?schema[table].columns.find(x=>x.name===c)?.type:''; %>
+        <td><% if(c==='status'||c==='payment_status') { %><span class="badge <%= row[c] %>"><%= row[c] %></span><% } else { %><%= format(row[c],type) %><% } %></td>
+      <% } %>
+      <% if(table) { %><td><a href="/<%= table %>/<%= row[schema[table].pk] %>">ดูรายละเอียด</a></td><% } %></tr>
+    <% } %>
+  </tbody>
+</table></div>

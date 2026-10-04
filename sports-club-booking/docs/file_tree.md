@@ -1,0 +1,84 @@
+# Full source file tree
+
+```text
+sports-club-booking/
+  database/
+    data.sql
+    logic.sql
+    permissions.sql
+    queries.sql
+    run_all.sql
+    schema.sql
+    tests.sql
+  docs/
+    screenshots/
+      booking_mobile_preview.png
+      booking_preview.png
+      dashboard_preview.png
+    concurrency_test.md
+    data_dictionary.md
+    design_decisions.md
+    index_rationale.md
+    integrity_constraints.md
+    mock_data_counts.json
+    submission_support.md
+    test_case_inventory.md
+    third_party_notices.md
+    traceability_matrix.md
+    validation_results.md
+  scripts/
+    generate_mock_data.py
+    run_sql_tests.js
+    sql_runner.js
+    test_concurrency.js
+    verify_database.js
+  src/
+    config/
+      database.js
+      schema.json
+      ui.js
+    controllers/
+      club.js
+    middleware/
+      csrf.js
+      error.js
+      validation.js
+    public/
+      css/
+        style.css
+      fonts/
+        LICENSE.txt
+        noto-sans-thai-latin-400-normal.woff2
+        noto-sans-thai-latin-700-normal.woff2
+        noto-sans-thai-thai-400-normal.woff2
+        noto-sans-thai-thai-700-normal.woff2
+      js/
+        app.js
+    routes/
+      index.js
+    services/
+      club.js
+    views/
+      partials/
+        footer.ejs
+        header.ejs
+        table.ejs
+      booking.ejs
+      dashboard.ejs
+      detail.ejs
+      error.ejs
+      form.ejs
+      list.ejs
+      reports.ejs
+    app.js
+  tests/
+    validation.test.js
+    web.test.js
+  .env.example
+  .gitignore
+  README.md
+  package-lock.json
+  package.json
+```
+
+node_modules ไม่รวมใน ZIP ใช้ npm ci ติดตั้งตาม package-lock.json

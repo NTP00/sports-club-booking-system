@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title><%= title %> • Sports Club</title>
+  <link rel="stylesheet" href="/css/style.css"><script src="/js/app.js" defer></script>
+</head>
+<body>
+<aside class="sidebar">
+  <a href="/" class="brand"><span class="brand-icon">SC</span><span>Sports Club<small>Facility & Booking</small></span></a>
+  <nav aria-label="เมนูหลัก">
+    <a class="<%= path==='/'?'selected':'' %>" href="/">ภาพรวม</a>
+    <% for (const [key,label] of Object.entries(titles)) { %>
+      <a class="<%= path.startsWith('/'+key)?'selected':'' %>" href="/<%= key %>"><%= label %></a>
+    <% } %>
+    <a class="<%= path==='/reports'?'selected':'' %>" href="/reports">รายงานรายสัปดาห์</a>
+  </nav>
+  <p class="sidebar-note">Database Systems<br>SQL Server • 9 ตาราง</p>
+</aside>
+<main>
+  <header class="topbar"><span>SPORTS CLUB & FACILITY BOOKING</span><a class="button small" href="/court_bookings/new">+ สร้างการจอง</a></header>
+  <section class="content"><h1><%= title %></h1>

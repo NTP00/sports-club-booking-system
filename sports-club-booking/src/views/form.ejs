@@ -1,0 +1,30 @@
+<%- include('partials/header') %>
+<p class="subtitle">รหัสสร้างอัตโนมัติ • กรุณากรอกข้อมูลที่จำเป็นให้ครบ</p>
+<% if(table==='maintenance') { %><p class="notice">เลือกเป้าหมายเพียงหนึ่งช่อง: สถานที่ หรือ สนาม หรือ อุปกรณ์ การบันทึกนี้ไม่เปลี่ยนสถานะทรัพยากรอัตโนมัติ</p><% } %>
+<% if(table==='payments') { %><p class="notice">เลือก booking_id หรือ rental_id เพียงอย่างเดียว ช่องเลขอ้างอิงเว้นว่างได้ การเปลี่ยน Payment เป็น cancelled คือแก้สถานะบันทึกเท่านั้น ต้องดำเนินการคืนเงินจริงภายนอกระบบ</p><% } %>
+<form method="post" class="panel form-grid">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <% for(const col of meta.columns) { if(col.name===meta.pk||col.name==='created_at'||col.name.includes('snapshot'))continue;
+    const c=col.name,required=!col.nullable,current=format(row[c],col.type); %>
+    <div class="field">
+      <label for="<%= c %>"><%= labels[c]||c %><%= required?' *':'' %></label>
+      <% if(c==='status') { %>
+        <select id="<%= c %>" name="<%= c %>" required><% for(const s of meta.statuses) { %><option value="<%= s %>" <%= (row[c]||meta.statuses[0])===s?'selected':'' %>><%= s %></option><% } %></select>
+      <% } else if(col.fk && lookups[col.fk]) { %>
+        <select id="<%= c %>" name="<%= c %>" <%= required?'required':'' %>><option value="">เลือก<%= labels[c] %></option><% for(const x of lookups[col.fk]) { %><option value="<%= x.id %>" <%= row[c]===x.id?'selected':'' %>><%= x.label %> (<%= x.status %>)</option><% } %></select>
+      <% } else if(c==='description') { %>
+        <textarea id="<%= c %>" name="<%= c %>" maxlength="500" required><%= row[c]||'' %></textarea>
+      <% } else { const isNumeric=col.type==='int'||col.type.startsWith('decimal'), type=col.type==='date'?'date':col.type.startsWith('time(')?'time':col.type.startsWith('datetime')?'datetime-local':isNumeric?'number':c==='email'?'email':'text';
+        const value=row[c]==null?'':type==='datetime-local'?current.replace(' ','T'):current; %>
+        <input id="<%= c %>" name="<%= c %>" type="<%= type %>" value="<%= value %>" <%= required?'required':'' %>
+          <% if(isNumeric) { %> min="<%= ['capacity','quantity','amount'].includes(c)?(c==='amount'?'0.01':'1'):'0' %>" step="<%= col.type==='int'?'1':'0.01' %>" max="<%= col.type==='int'?'2147483647':'99999999.99' %>"<% } %>
+          <% if(/varchar/.test(col.type)) { %>maxlength="<%= col.type.match(/\((\d+)\)/)[1] %>"<% } %>
+          <% if(type==='date') { %> min="1900-01-01" max="2099-12-31"<% } %>
+          <% if(type==='time') { %>step="1"<% } %>>
+      <% } %>
+      <small class="muted"><%= col.nullable?'เว้นว่างได้':'' %></small>
+    </div>
+  <% } %>
+  <div class="form-actions"><button type="submit">บันทึก</button><a class="button secondary" href="/<%= table %>">กลับรายการ</a></div>
+</form>
+<%- include('partials/footer') %>

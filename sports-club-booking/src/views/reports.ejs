@@ -1,0 +1,6 @@
+<%- include('partials/header') %>
+<p class="subtitle">สัปดาห์ละ 7 วัน • เริ่มวันจันทร์ • อุปกรณ์ใช้ stock กลาง</p>
+<form method="get" class="panel inline-form"><label for="week">เลือกวันจันทร์</label><input type="date" name="week" id="week" value="<%= week %>"><button>แสดงรายงาน</button></form>
+<div class="panel"><%- include('partials/table',{rows,columns:['week_start','resource_type','resource_name','resource_category','facility_id','utilized_units','capacity_units','utilization_percent'],table:null}) %></div>
+<p class="notice">สนาม: นาทีที่จอง ÷ นาทีเปิดทั้งสัปดาห์ × 100 • อุปกรณ์: จำนวนชิ้น × วันเช่าที่ทับสัปดาห์ ÷ (stock รวม × 7) × 100<br>รายงานใช้เวลาเปิดและ stock ปัจจุบัน เพราะ schema ไม่มีประวัติค่าความจุ ค่า NULL หมายถึงตัวหารเป็นศูนย์</p>
+<%- include('partials/footer') %>

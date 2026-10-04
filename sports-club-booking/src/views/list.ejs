@@ -1,0 +1,15 @@
+<%- include('partials/header') %>
+<div class="toolbar">
+  <form method="get" class="search"><label class="sr-only" for="search">ค้นหา</label><input id="search" name="q" value="<%= result.search %>" maxlength="80" placeholder="ค้นหาชื่อ รหัส หรือสถานะ"><button type="submit" class="secondary">ค้นหา</button></form>
+  <% if(masters.has(table)||table==='payments'||table==='court_bookings') { %><a class="button" href="/<%= table %>/new">+ เพิ่มรายการ</a><% } %>
+</div>
+<p class="muted"><%= result.total.toLocaleString('th-TH') %> รายการ • หน้าละ <%= result.size %></p>
+<div class="panel">
+  <%- include('partials/table',{rows:result.rows,columns:meta.columns.map(c=>c.name),table}) %>
+</div>
+<div class="pagination">
+  <% if(result.page>1) { %><a class="button secondary" href="?page=<%= result.page-1 %>&q=<%= encodeURIComponent(result.search) %>">← ก่อนหน้า</a><% } %>
+  <span>หน้า <%= result.page %> / <%= Math.max(1,Math.ceil(result.total/result.size)) %></span>
+  <% if(result.page*result.size<result.total) { %><a class="button secondary" href="?page=<%= result.page+1 %>&q=<%= encodeURIComponent(result.search) %>">ถัดไป →</a><% } %>
+</div>
+<%- include('partials/footer') %>

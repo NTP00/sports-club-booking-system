@@ -1,0 +1,15 @@
+<%- include('partials/header') %>
+<p class="subtitle">ตรวจรายการวันนี้ รายได้ที่บันทึก และอุปกรณ์ที่รอคืน</p>
+<div class="stats">
+  <article><small>สมาชิก active</small><strong><%= data[0][0].active_members %></strong><span>คน</span></article>
+  <article><small>การจองวันนี้</small><strong><%= data[0][0].bookings_today %></strong><span>รายการ confirmed</span></article>
+  <article><small>เช่าเกินกำหนด</small><strong><%= data[0][0].overdue_rentals %></strong><span>รายการที่ยังไม่คืน</span></article>
+  <article><small>ยอด Payment สำเร็จ</small><strong><%= Number(data[0][0].paid_revenue).toLocaleString('th-TH') %></strong><span>บาท</span></article>
+</div>
+<div class="panel"><h2>การจองล่าสุด</h2>
+  <%- include('partials/table',{rows:data[1],columns:['booking_id','booking_date','court_name','first_name','status'],table:'court_bookings'}) %>
+</div>
+<div class="panel"><h2>อุปกรณ์ว่างวันนี้</h2><p class="muted">stock ทั้งหมด − จำนวนที่ครอบครองวันนี้ รวมรายการเกินกำหนดคืน</p>
+  <%- include('partials/table',{rows:data[2],columns:['equipment_id','equipment_name','available_today'],table:'equipment'}) %>
+</div>
+<%- include('partials/footer') %>

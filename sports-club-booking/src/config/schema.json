@@ -1,0 +1,684 @@
+{
+  "facilities": {
+    "pk": "facility_id",
+    "prefix": "FAC",
+    "statuses": [
+      "active",
+      "inactive",
+      "maintenance"
+    ],
+    "columns": [
+      {
+        "name": "facility_id",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": "'FAC' + right('0000000' + convert(varchar(7), next value for dbo.seq_facilities), 7)",
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "facility_name",
+        "type": "nvarchar(100)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "facility_type",
+        "type": "nvarchar(50)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "location",
+        "type": "nvarchar(150)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "opening_time",
+        "type": "time(0)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "closing_time",
+        "type": "time(0)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "status",
+        "type": "nvarchar(20)",
+        "nullable": false,
+        "default": "'active'",
+        "fk": null,
+        "ak": false
+      }
+    ]
+  },
+  "courts": {
+    "pk": "court_id",
+    "prefix": "CRT",
+    "statuses": [
+      "active",
+      "inactive",
+      "maintenance"
+    ],
+    "columns": [
+      {
+        "name": "court_id",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": "'CRT' + right('0000000' + convert(varchar(7), next value for dbo.seq_courts), 7)",
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "facility_id",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "fk": "facilities",
+        "ak": false
+      },
+      {
+        "name": "court_name",
+        "type": "nvarchar(100)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "court_type",
+        "type": "nvarchar(50)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "capacity",
+        "type": "int",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "hourly_rate",
+        "type": "decimal(10,2)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "status",
+        "type": "nvarchar(20)",
+        "nullable": false,
+        "default": "'active'",
+        "fk": null,
+        "ak": false
+      }
+    ]
+  },
+  "members": {
+    "pk": "member_id",
+    "prefix": "MEM",
+    "statuses": [
+      "active",
+      "inactive"
+    ],
+    "columns": [
+      {
+        "name": "member_id",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": "'MEM' + right('0000000' + convert(varchar(7), next value for dbo.seq_members), 7)",
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "first_name",
+        "type": "nvarchar(50)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "last_name",
+        "type": "nvarchar(50)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "phone",
+        "type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "email",
+        "type": "varchar(255)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": true
+      },
+      {
+        "name": "membership_type",
+        "type": "nvarchar(50)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "membership_start",
+        "type": "date",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "membership_end",
+        "type": "date",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "status",
+        "type": "nvarchar(20)",
+        "nullable": false,
+        "default": "'active'",
+        "fk": null,
+        "ak": false
+      }
+    ]
+  },
+  "court_bookings": {
+    "pk": "booking_id",
+    "prefix": "BKG",
+    "statuses": [
+      "confirmed",
+      "cancelled"
+    ],
+    "columns": [
+      {
+        "name": "booking_id",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": "'BKG' + right('0000000' + convert(varchar(7), next value for dbo.seq_court_bookings), 7)",
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "member_id",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "fk": "members",
+        "ak": false
+      },
+      {
+        "name": "court_id",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "fk": "courts",
+        "ak": false
+      },
+      {
+        "name": "booking_date",
+        "type": "date",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "start_time",
+        "type": "time(0)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "end_time",
+        "type": "time(0)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "total_amount",
+        "type": "decimal(10,2)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "hourly_rate_snapshot",
+        "type": "decimal(10,2)",
+        "nullable": false,
+        "default": "0",
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "status",
+        "type": "nvarchar(20)",
+        "nullable": false,
+        "default": "'confirmed'",
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "created_at",
+        "type": "datetime2(0)",
+        "nullable": false,
+        "default": "sysdatetime()",
+        "fk": null,
+        "ak": false
+      }
+    ]
+  },
+  "equipment": {
+    "pk": "equipment_id",
+    "prefix": "EQP",
+    "statuses": [
+      "active",
+      "inactive",
+      "maintenance"
+    ],
+    "columns": [
+      {
+        "name": "equipment_id",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": "'EQP' + right('0000000' + convert(varchar(7), next value for dbo.seq_equipment), 7)",
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "equipment_name",
+        "type": "nvarchar(100)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "equipment_type",
+        "type": "nvarchar(50)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "total_quantity",
+        "type": "int",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "rental_rate",
+        "type": "decimal(10,2)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "status",
+        "type": "nvarchar(20)",
+        "nullable": false,
+        "default": "'active'",
+        "fk": null,
+        "ak": false
+      }
+    ]
+  },
+  "equipment_rentals": {
+    "pk": "rental_id",
+    "prefix": "RNT",
+    "statuses": [
+      "active",
+      "returned",
+      "cancelled"
+    ],
+    "columns": [
+      {
+        "name": "rental_id",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": "'RNT' + right('0000000' + convert(varchar(7), next value for dbo.seq_equipment_rentals), 7)",
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "member_id",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "fk": "members",
+        "ak": false
+      },
+      {
+        "name": "equipment_id",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "fk": "equipment",
+        "ak": false
+      },
+      {
+        "name": "rental_date",
+        "type": "date",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "due_date",
+        "type": "date",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "return_date",
+        "type": "date",
+        "nullable": true,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "quantity",
+        "type": "int",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "rental_rate_snapshot",
+        "type": "decimal(10,2)",
+        "nullable": false,
+        "default": "0",
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "total_amount",
+        "type": "decimal(10,2)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "status",
+        "type": "nvarchar(20)",
+        "nullable": false,
+        "default": "'active'",
+        "fk": null,
+        "ak": false
+      }
+    ]
+  },
+  "payments": {
+    "pk": "payment_id",
+    "prefix": "PAY",
+    "statuses": [
+      "pending",
+      "paid",
+      "failed",
+      "cancelled"
+    ],
+    "columns": [
+      {
+        "name": "payment_id",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": "'PAY' + right('0000000' + convert(varchar(7), next value for dbo.seq_payments), 7)",
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "rental_id",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "fk": "equipment_rentals",
+        "ak": false
+      },
+      {
+        "name": "booking_id",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "fk": "court_bookings",
+        "ak": false
+      },
+      {
+        "name": "amount",
+        "type": "decimal(10,2)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "payment_date",
+        "type": "datetime2(0)",
+        "nullable": false,
+        "default": "sysdatetime()",
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "payment_method",
+        "type": "nvarchar(30)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "transaction_ref",
+        "type": "varchar(100)",
+        "nullable": true,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "status",
+        "type": "nvarchar(20)",
+        "nullable": false,
+        "default": "'pending'",
+        "fk": null,
+        "ak": false
+      }
+    ]
+  },
+  "staff": {
+    "pk": "staff_id",
+    "prefix": "STF",
+    "statuses": [
+      "active",
+      "inactive"
+    ],
+    "columns": [
+      {
+        "name": "staff_id",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": "'STF' + right('0000000' + convert(varchar(7), next value for dbo.seq_staff), 7)",
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "first_name",
+        "type": "nvarchar(50)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "last_name",
+        "type": "nvarchar(50)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "phone",
+        "type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "email",
+        "type": "varchar(255)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": true
+      },
+      {
+        "name": "position",
+        "type": "nvarchar(50)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "status",
+        "type": "nvarchar(20)",
+        "nullable": false,
+        "default": "'active'",
+        "fk": null,
+        "ak": false
+      }
+    ]
+  },
+  "maintenance": {
+    "pk": "maintenance_id",
+    "prefix": "MNT",
+    "statuses": [
+      "scheduled",
+      "in_progress",
+      "completed",
+      "cancelled"
+    ],
+    "columns": [
+      {
+        "name": "maintenance_id",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": "'MNT' + right('0000000' + convert(varchar(7), next value for dbo.seq_maintenance), 7)",
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "staff_id",
+        "type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "fk": "staff",
+        "ak": false
+      },
+      {
+        "name": "facility_id",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "fk": "facilities",
+        "ak": false
+      },
+      {
+        "name": "court_id",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "fk": "courts",
+        "ak": false
+      },
+      {
+        "name": "equipment_id",
+        "type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "fk": "equipment",
+        "ak": false
+      },
+      {
+        "name": "maintenance_date",
+        "type": "date",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "description",
+        "type": "nvarchar(500)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "cost",
+        "type": "decimal(10,2)",
+        "nullable": false,
+        "default": null,
+        "fk": null,
+        "ak": false
+      },
+      {
+        "name": "status",
+        "type": "nvarchar(20)",
+        "nullable": false,
+        "default": "'scheduled'",
+        "fk": null,
+        "ak": false
+      }
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+<%- include('partials/header') %>
+<div class="toolbar"><a class="button secondary" href="/<%= table %>">← กลับรายการ</a>
+  <% if(masters.has(table)||table==='payments') { %><a class="button" href="/<%= table %>/<%= row[meta.pk] %>/edit">แก้ไข</a><% } %>
+</div>
+<div class="panel"><dl class="details">
+  <% for(const col of meta.columns) { %><div><dt><%= labels[col.name]||col.name %></dt><dd>
+    <% if(col.fk && row[col.name]) { %><a href="/<%= col.fk %>/<%= row[col.name] %>"><%= row[col.name] %></a><% } else { %><%= format(row[col.name],col.type) %><% } %>
+  </dd></div><% } %>
+</dl></div>
+<% if(['facilities','courts','members','equipment','staff','maintenance','payments'].includes(table)) { %>
+<form method="post" action="/<%= table %>/<%= row[meta.pk] %>/status" class="panel inline-form">
+  <input type="hidden" name="_csrf" value="<%= csrf %>"><label for="status">เปลี่ยนสถานะ</label>
+  <select name="status" id="status"><% for(const s of meta.statuses) { %><option value="<%= s %>" <%= s===row.status?'selected':'' %>><%= s %></option><% } %></select><button>บันทึกสถานะ</button>
+</form><% } %>
+<% if(table==='equipment_rentals' && row.status==='active') { %>
+<form method="post" action="/equipment_rentals/<%= row.rental_id %>/return" class="panel inline-form">
+  <input type="hidden" name="_csrf" value="<%= csrf %>"><label for="return_date">รับคืนอุปกรณ์</label><input type="date" id="return_date" name="return_date" value="<%= today %>" max="<%= today %>" required><button>ยืนยันวันคืนจริง</button>
+</form><% } %>
+<% if(['court_bookings','equipment_rentals'].includes(table) && ['confirmed','active'].includes(row.status)) { %>
+<form method="post" action="/<%= table %>/<%= row[meta.pk] %>/status" class="panel inline-form" data-confirm="ยืนยันยกเลิกรายการนี้?">
+  <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="status" value="cancelled"><button class="danger">ยกเลิกรายการ</button><span class="muted">ยกเลิกได้เมื่อไม่มี Payment สถานะ paid</span>
+</form><% } %>
+<% if(payments.length) { %><div class="panel"><h2>การชำระเงิน</h2><%- include('partials/table',{rows:payments,columns:['payment_id','amount','payment_date','status'],table:'payments'}) %></div><% } %>
+<%- include('partials/footer') %>
