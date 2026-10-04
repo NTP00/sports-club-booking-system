@@ -1,26 +1,12 @@
 # Repository file structure
 
-โปรเจกต์หลักอยู่ที่ root ของ repository; ชุดเริ่มต้นเดิมอยู่ใน `archive/initial-scaffold/` และเก็บไว้เพื่ออ้างอิงประวัติ
+โปรเจกต์ที่ใช้งานอยู่ที่ root ของ repository มี source และ SQL ชุดเดียว ชุดเริ่มต้นที่เลิกใช้แล้วนำออกจาก `main`; ย้อนดูได้จาก [commit เดิม](https://github.com/NTP00/sports-club-booking-system/tree/258fc295c3a9483cfc3c50b95ab8951a5149c732/archive/initial-scaffold)
 
 ```text
 sports-club-booking-system/
   .env.example
   .gitignore
   README.md
-  archive/
-    README.md
-    initial-scaffold/
-      README.snapshot.md
-      backend/
-        .gitkeep
-      database/
-        queries.sql
-        schema.sql
-        seed.sql
-      docs/
-        .gitkeep
-      frontend/
-        .gitkeep
   database/
     data.sql
     logic.sql

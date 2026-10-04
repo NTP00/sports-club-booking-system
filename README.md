@@ -13,7 +13,9 @@ git clone https://github.com/NTP00/sports-club-booking-system.git
 cd sports-club-booking-system
 ```
 
-คำสั่ง npm และ path `database/`, `scripts/`, `docs/`, `src/`, `tests/` ในเอกสารนี้อ้างอิงจาก root ของ repository ซึ่งมี `package.json` อยู่ โปรเจกต์ล่าสุดใช้โครงสร้างนี้ทั้งหมด ชุดเริ่มต้นเดิมเก็บไว้ใน [`archive/initial-scaffold/`](archive/initial-scaffold/) เพื่ออ้างอิงประวัติ ดู [คำอธิบาย archive](archive/README.md)
+คำสั่ง npm และ path `database/`, `scripts/`, `docs/`, `src/`, `tests/` ในเอกสารนี้อ้างอิงจาก root ของ repository ซึ่งมี `package.json` อยู่ ใช้โปรเจกต์ชุดนี้สำหรับติดตั้ง รัน และพัฒนาร่วมกัน
+
+ชุดเริ่มต้นเดิมที่ใช้ฐานข้อมูล `sports_club` และ README รุ่นเก่าถูกนำออกจาก `main` เพื่อไม่ให้สับสนกับฐานข้อมูล `sports_club_booking` ที่ใช้งานปัจจุบัน เนื้อหาเดิมยังดูและกู้คืนได้จาก [commit ก่อนนำไฟล์ซ้ำออก](https://github.com/NTP00/sports-club-booking-system/tree/258fc295c3a9483cfc3c50b95ab8951a5149c732/archive/initial-scaffold)
 
 ## 1. สิ่งที่ต้องติดตั้ง
 
