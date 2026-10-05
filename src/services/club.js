@@ -111,9 +111,146 @@ function createService(database=db) {
         from dbo.equipment e outer apply(select sum(p.quantity) as used from dbo.fn_rental_periods() p where p.equipment_id=e.equipment_id and dbo.fn_today() between p.rental_date and p.effective_end) q order by e.equipment_id;`)).recordsets;
     },
     async reports(week=null) {
-      const params=week?[['week',db.sql.Date,week]]:[];
-      return (await run(`select * from dbo.vw_FacilityUtilizationReport where week_start=${week?'@week':"dateadd(day,-((datediff(day,convert(date,'19000101'),dbo.fn_today())%7+7)%7),dbo.fn_today())"} order by resource_type,resource_id`,params)).recordset;
-    }
+  const params = [
+    ['week', db.sql.Date, week]
+  ];
+
+  const sqlText = `
+    set @week = coalesce(
+      @week,
+      dateadd(
+        day,
+        -((datediff(day, convert(date,'19000101'), dbo.fn_today()) % 7 + 7) % 7),
+        dbo.fn_today()
+      )
+    );
+
+    declare @week_end date = dateadd(day, 7, @week);
+    declare @week_last date = dateadd(day, 6, @week);
+    declare @today date = dbo.fn_today();
+
+    ;with court_usage as (
+      select
+        b.court_id,
+        sum(
+          convert(bigint, datediff(second, b.start_time, b.end_time))
+        ) / 60.0 as used
+      from dbo.court_bookings b
+      where b.status = 'confirmed'
+        and b.booking_date >= @week
+        and b.booking_date < @week_end
+      group by b.court_id
+    ),
+
+    rental_periods as (
+      select
+        r.equipment_id,
+        r.quantity,
+        r.rental_date,
+        case
+          when r.return_date is not null
+            then r.return_date
+          when r.due_date < @today
+            then convert(date,'99991231')
+          else r.due_date
+        end as effective_end
+      from dbo.equipment_rentals r
+      where r.status <> 'cancelled'
+        and r.rental_date <= @week_last
+        and
+        case
+          when r.return_date is not null
+            then r.return_date
+          when r.due_date < @today
+            then convert(date,'99991231')
+          else r.due_date
+        end >= @week
+    ),
+
+    equipment_usage as (
+      select
+        p.equipment_id,
+        sum(
+          convert(bigint, p.quantity) *
+          (
+            datediff(
+              day,
+              case
+                when p.rental_date < @week
+                  then @week
+                else p.rental_date
+              end,
+              case
+                when p.effective_end > @week_last
+                  then @week_last
+                else p.effective_end
+              end
+            ) + 1
+          )
+        ) as used
+      from rental_periods p
+      group by p.equipment_id
+    ),
+
+    report_rows as (
+      select
+        @week as week_start,
+        convert(varchar(10),'court') as resource_type,
+        c.court_id as resource_id,
+        c.court_name as resource_name,
+        c.court_type as resource_category,
+        c.facility_id,
+        convert(decimal(19,4), coalesce(u.used,0)) as utilized_units,
+        convert(
+          decimal(19,4),
+          datediff(second, f.opening_time, f.closing_time) / 60.0 * 7
+        ) as capacity_units
+      from dbo.courts c
+      join dbo.facilities f
+        on f.facility_id = c.facility_id
+      left join court_usage u
+        on u.court_id = c.court_id
+
+      union all
+
+      select
+        @week as week_start,
+        convert(varchar(10),'equipment') as resource_type,
+        e.equipment_id as resource_id,
+        e.equipment_name as resource_name,
+        e.equipment_type as resource_category,
+        convert(varchar(10),null) as facility_id,
+        convert(decimal(19,4), coalesce(u.used,0)) as utilized_units,
+        convert(
+          decimal(19,4),
+          convert(bigint,e.total_quantity) * 7
+        ) as capacity_units
+      from dbo.equipment e
+      left join equipment_usage u
+        on u.equipment_id = e.equipment_id
+    )
+
+    select
+      week_start,
+      resource_type,
+      resource_id,
+      resource_name,
+      resource_category,
+      facility_id,
+      utilized_units,
+      capacity_units,
+      convert(
+        decimal(10,2),
+        100.0 * utilized_units / nullif(capacity_units,0)
+      ) as utilization_percent
+    from report_rows
+    where week_start=@week
+    order by resource_type, resource_id
+    option (recompile);
+  `;
+
+  return (await run(sqlText, params)).recordset;
+}
   };
 }
 module.exports={createService,sqlType};

@@ -17,6 +17,7 @@ grant update on dbo.court_bookings to sports_club_app;
 grant update on dbo.equipment_rentals to sports_club_app;
 grant execute on dbo.sp_BookCourtAndEquipment to sports_club_app;
 grant execute on dbo.sp_lock_integrity to sports_club_app;
+grant execute on object::dbo.fn_today to sports_club_app;
 grant execute on type::dbo.equipment_request to sports_club_app;
 grant references on type::dbo.equipment_request to sports_club_app;
 -- NEXT VALUE FOR requires UPDATE on the corresponding sequence.
