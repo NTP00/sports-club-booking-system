@@ -1,63 +1,80 @@
-# Final validation results
+# Strict Audit fix and regression results
 
-ตรวจเมื่อ 2026-10-04 โดยเทียบ Assignment, EER/Relational Schema, Normalization และ prompt ที่แนบ
+ตรวจวันที่ 2026-10-05 (Asia/Bangkok) ตาม Strict Audit และคำสั่ง FIX + REGRESSION
 
-**สถานะ:** source-code deliverable สร้างครบ ตรวจโครงสร้าง, syntax, seed-model และ web contract ผ่านแล้ว ยังไม่ได้ execute บน SQL Server Engine จริง และยังไม่มีหลักฐาน runtime concurrency ผ่าน
+Audit base: `258fc295c3a9483cfc3c50b95ab8951a5149c732`
 
-## ผ่านแล้วในสภาพแวดล้อมนี้
+เริ่มแก้บน main ล่าสุด: `224e843095224c12f2a870d26602ecce901cb656` ซึ่งต่างจาก audit base เฉพาะการนำ scaffold เก่าออกและปรับเอกสาร งานรอบนี้รักษาการจัดโครงสร้างนั้นไว้
 
-| Check | Evidence |
-|---|---|
-| Schema source alignment | 9 tables, 73 columns, 9 PK, 11 FK, 2 email AK; types อ่านจากภาพ EER หน้า1; nullableเฉพาะที่ระบุ |
-| SQL syntax | Microsoft.SqlServer.TransactSql.ScriptDom 161.8901.0, TSql150Parser (SQL Server2019 grammar); 6 SQL files ไม่มี parse error |
-| Embedded SQL | SQL test batches46และ web SQL statements33ไม่มี parse error |
-| Mock-data model | 20/40/600/1200/40/800/1850/25/40 records; PK/ref/XOR/payment ceilingและoverlap/stockตรวจในPython ผ่าน; peak stock occupancy6 ≤ stock50–54 |
-| Node web/validation tests | npm test: 11/11ผ่าน; HTTP pages, malformed dates/amounts, XOR, CSRF, TVP/SP calls, SQL allowlist, 40equipment form parsing |
-| Templates | EJSทุกไฟล์ compileผ่าน |
-| UI in a browser | Desktop1440px/mobile390px renderผ่าน, ไม่มีpageoverflow/JSerror; เพิ่ม/ลบequipmentแล้วIDsไม่ซ้ำ; มีfontไทยที่serveจากlocal; previewใช้servicefixturesไม่ใช่DBจริง |
-| Dependencies | npm installสร้างpackage-lock.jsonสำเร็จ; npm audit --omit=dev ไม่พบ known vulnerabilities ในรอบตรวจนี้ |
-| SQL source protection | ทุกFK NO ACTION; snapshotcopy/immutability; statusCHECK; filteredunique reference; parameterizedqueries |
+**ผล:** แก้ source F01/F02/F03/F04/F05 และเพิ่ม Q01/Q02 verification/regression แล้ว Node และ static checks ผ่าน ส่วน SQL Server runtime, DB tests และ concurrency เป็น **NOT EXECUTED** ไม่มี Engine/credential ที่พร้อมใช้ในสภาพแวดล้อมนี้ จึงยังไม่รับรองความพร้อมส่งทั้งระบบ
 
-ScriptDom ตรวจ syntax แต่ไม่ได้ resolve FK/object dependencies, ตรวจ permissions หรือ execute triggers/SP ไม่แทน SQL Server runtime test และ Node tests ใช้ service doubles สำหรับหน้าเว็บ
+## ผลแต่ละ issue
 
-ภาพใน docs/screenshots เป็น UI preview ที่ใช้ service fixtures สำหรับตรวจ layout/ภาษาไทย desktop/mobile ตัวเลขในภาพไม่ได้เป็นผล query ของ SQL Server ใช้ภาพจากเว็บที่เชื่อมฐานข้อมูลจริงในการส่งคลิปและรายงาน
+| Issue | Files changed | Exact fix | Regression / result |
+|---|---|---|---|
+| F01 | src/services/club.js; tests/strict_audit.test.js; database/tests.sql | เอา TOP(80) ออกจาก reports() คืนทุก resource ของ week ที่เลือก; ไม่เปลี่ยนสูตรหรือ output columns | Node service+HTTP fixture 41 courts + 40 equipment ได้ครบ 81 ผ่าน; SQL T58 เตรียมไว้/parse ผ่าน แต่ยังไม่ execute |
+| F02 | src/app.js; tests/strict_audit.test.js | กำหนด UI res.locals รวม path/titles ก่อน URL-encoded body parser เพื่อให้ early-error template render ได้ | oversized 70 KB และ 501 parameters คืน 413/HTML error page; ไม่มี stack/EJS location/credential fixture ผ่านใน development mode |
+| F03 | src/middleware/validation.js; tests/strict_audit.test.js | validator VARCHAR ร่วมกัน: trim, optional NULL, printable ASCII และ max length; reference ทั้งสาม workflow ใช้ VARCHAR(100) ตามเดิม | ASCII/100 chars/blank/null/missing และ Thai/accent/emoji/control/101 chars/nonstring ให้ผลตรงกันทั้งสาม workflow ผ่าน |
+| Q01 | scripts/verify_database.js; tests/database_verification.test.js | ตรวจเต็ม FK mapping/actions/trust; ordered unique index key columns/uniqueness/filter; trigger name/parent/SQL_TRIGGER/INSTEAD OF/INSERT UPDATE DELETE; mandatory object types | 26 catalog-fixture tests ผ่าน รวม negative mutations ที่คงจำนวน FK เดิม; query parse ผ่าน; actual db:verify ยังไม่ execute |
+| Q02 | database/tests.sql; scripts/run_sql_tests.js; docs/test_case_inventory.md | เพิ่ม independent numerical SQL oracles T47–T56 และตรวจ SQL suite ครบ 58 case names ไม่ซ้ำ | SQL parse ผ่าน; expected court 60/6720 ×100, equipment 4/70 ×100; numerical runtime ยังไม่ execute |
+| F04 | src/controllers/club.js; src/services/club.js; src/middleware/validation.js; tests/strict_audit.test.js | Object.hasOwn ใน resource allowlists ป้องกัน inherited properties | /constructor, /toString, /__proto__ รวม /new และ detail คืน 404; service ปฏิเสธก่อนเข้าฐานข้อมูล ผ่าน |
+| F05 | database/logic.sql; database/tests.sql; tests/strict_audit.test.js | เพิ่มเลขหลักสัปดาห์ 0/1 ทำให้ spine รองรับ 20,000 สัปดาห์ ครอบคลุม input 1900–2099; ไม่เพิ่ม calendar table | Node validator boundary ผ่าน; SQL T57 ตรวจ earliest 1900-01-01 และ week ของ 2099-12-31 parse ผ่าน/ยังไม่ execute |
 
-## Checklist ที่ implement แล้ว (runtime บางข้อยังรอตรวจ)
+Q01/Q02 เป็นการเพิ่มตัวตรวจและ tests ไม่ได้แก้ schema เพื่อให้ผ่าน ไม่มีการเพิ่ม table หรือเปลี่ยน EER/Normalization/BR01–BR14
 
-| Requirement | Implementation | Verification status |
+## Checks ที่ execute จริง
+
+| Check | Result | หลักฐาน/ข้อจำกัด |
 |---|---|---|
-| 9 tables only + keys/types | schema.sql + schema.json | static/sourceผ่าน; db:verifyเตรียมไว้ |
-| BR01–BR14 | CHECK/FK/triggers/SP ตาม traceability_matrix.md | mappedครบ; 46 SQL casesรอEngine |
-| CHECK, FK actions, indexes | schema.sql | syntax/staticผ่าน |
-| SQL Server2019/2022 compatibility | T-SQL150 grammar; ไม่มีfeatureเฉพาะ2025 | syntaxผ่าน; Engineยังไม่รัน |
-| schema/data/logic/queries/run_all | database/ครบ | 6 SQL filesparseผ่าน; SQLCMDincludeตรวจpathเชิงโครงสร้าง |
-| Mandatory SP + ACID | sp_BookCourtAndEquipment, TVP, TRY/CATCH, XACT_ABORT, COMMIT/ROLLBACK | code/contractผ่าน; runtime rollbackรอEngine |
-| Mandatory trigger | trg_CheckCourtConflict, multirow insert/update | syntaxและcasesครบ; runtimeรอEngine |
-| Mandatory weekly view | vw_FacilityUtilizationReport + resource_category | syntaxผ่าน; numerical DB resultsรอEngine |
-| 10 queries 2/3/3/2 | queries.sql Q01–Q10 | syntax/categoryผ่าน; db:verifyตรวจresultไม่ว่าง |
-| Mock-data counts | data.sql + generator | counts/modelผ่าน; DMLexecutionรอEngine |
-| Data dictionary | data_dictionary.md | generatedจากschema metadata; ตรวจtypesกับEERภาพ |
-| Web CRUD/business workflows | src/ | HTTP/validation/TVP testsผ่าน; DB-connectedend-to-endรอEngine |
-| Tests | database/tests.sql, tests/, concurrency script | Node11ผ่าน; SQL46/concurrencyรอEngine |
-| README | requirements→SSMS→env→npm→tests | ขั้นตอนครบ |
-| No frontend-only BR | DBconstraints/triggers/SPครอบคลุมทุกBR | traceabilityผ่าน |
-| Concurrency protection | same transaction-owned writer gateก่อนเขียนทั้ง9ตาราง | design/sourceผ่าน; two-session proofยังไม่รัน |
-| Preserve history | FK NO ACTION, immutableIDs/snapshots, no UIharddelete | source/testsครบ |
+| npm ci | PASS | ติดตั้งจาก package-lock.json 155 packages; lockfile ไม่เปลี่ยน |
+| npm test | 57/57 PASS | รวม 11 tests เดิม + 20 strict-audit regressions + 26 metadata-verifier tests; DB/service/catalog fixtures ไม่แทน Engine |
+| node --check | PASS, 18 JS files | ตรวจทุก JS ของโปรเจกต์ ไม่นับ node_modules |
+| EJS compile | PASS, 10 templates | F02 ตรวจ render ผ่าน HTTP เพิ่มด้วย |
+| SQL static parse | PASS, 0 errors | Microsoft ScriptDom 161.8901.0, TSql150Parser: 6 SQL files + 58 embedded test cases + fixture batch + 47 SQL statements ที่ JS สร้างจริง รวม 112 parse checks |
+| Old-code regression control | คาดหมาย FAIL, 10/20 failed | นำ strict-audit regression เดียวกันไปทดสอบ code ณ audit base; จับ F01/F02/F03/F04 เดิมได้ 10 cases หลังแก้ทั้ง 20 cases ผ่าน |
+| SQL Engine execution | NOT EXECUTED | ไม่พบ Engine/endpoint/credential ที่พร้อมใช้ |
+| db:verify | NOT EXECUTED | catalog fixtures พิสูจน์ตรรกะ assertion; ยังไม่พิสูจน์การ query metadata จริงหรือสิทธิ์บัญชี |
+| DB tests | NOT EXECUTED — 58 cases prepared | SQL syntax ผ่าน ไม่ใช่ 58/58 runtime PASS |
+| Concurrency | NOT EXECUTED | รักษาสคริปต์ two-session เดิม ยังไม่มี Engine evidence |
 
-## สิ่งที่ยังต้องยืนยันจริง
+ScriptDom ตรวจ grammar แต่ไม่ resolve dependencies, catalog metadata, permissions, transaction effects หรือ concurrency
 
-1. รัน schema→logic→data บน SQL Server2019/2022 ในเครื่องกลุ่ม
-2. ใช้บัญชีผู้พัฒนารัน npm run db:verify, npm run db:test และ npm run db:concurrency แล้วเก็บผล
-3. รัน permissions.sql และทดสอบเว็บด้วยบัญชี app จริง (รวม named instance/TCP/certificate configของเครื่อง)
-4. เปิดเว็บกับ DBจริงเพื่อทดสอบ combined booking, payments, returns, cancel, reports
+## Numerical oracle inventory
 
-พยายามเปิดSQL Server2022ชั่วคราวแล้ว แต่ Engine ไม่สามารถ initialize ใน runtimeนี้ได้ จึงไม่มีการติ๊กว่า runtime/concurrencyผ่าน ไม่พบ known raceในstrategyที่ออกแบบ แต่ยังไม่อ้างว่าได้พิสูจน์จากการรันจริง
+| Case | Expected result |
+|---|---|
+| T47 Court 60 นาที, เปิด 16 ชั่วโมง/วัน | utilized=60, capacity=6720, percent=0.89 เมื่อ cast DECIMAL(10,2) |
+| T48 Stock=10, quantity=2, planned inclusive 2 วัน | utilized=4, capacity=70, percent=5.71 |
+| T49 Zero usage | court/equipment utilized=0, percent=0 |
+| T50 Cancelled court/rental | utilized=0 |
+| T51 Returned ก่อน due_date | ใช้ actual return; 2 ชิ้น ×2 วัน=4 piece-days |
+| T52 Overdue ผ่านสัปดาห์ถัดมา | 2 ชิ้น ×7 วัน=14 piece-days; percent=20.00 |
+| T53 Cross-week Saturday–Tuesday | 4 piece-days ในแต่ละสัปดาห์, percent=5.71 |
+| T54 Zero stock | capacity=0, utilized=0, percent=NULL โดยไม่ divide-by-zero |
+| T55 Actual return day inclusive | 2 ชิ้น Monday–Tuesday=4 piece-days; stock=2 capacity=14, percent=28.57 |
+| T56 Same-day reuse เมื่อคืนเต็ม stock | reject SQL error 51005; วันถัดไปใช้ได้ตาม T31 เดิม |
+| T57 Date boundary | มี reporting rows ของ 1900-01-01 และสัปดาห์สุดท้ายของ 2099 |
+| T58 All resources | view คืน 41 courts +40 equipment ครบ 81 resources ใน fixture |
 
-## ข้อจำกัดที่มีจริงตามschema/scope
+วันใน cases ผูกกับ dbo.fn_today() และ Monday ป้องกัน test กลายเป็น overdue โดยไม่ตั้งใจ; planned case ใช้สัปดาห์หน้า และ actual-return cases ใช้ช่วงอดีตที่แน่นอน Facility opening=closing ไม่ใช่ zero-capacity case ที่ valid เพราะ CHECK บังคับ opening<closing; zero-capacity oracle จึงใช้ equipment stock=0 ที่ schema อนุญาต
 
-- No authentication/payment gateway/wallet/refund ledger ตามprompt; bindloopbackและCSRFเป็นค่าเริ่มต้น
-- Capacity/opening historyไม่ได้เก็บ จึงใช้catalogปัจจุบันเป็นdenominatorของรายงานย้อนหลัง
-- Overdue เกิดจากเวลาเปลี่ยนได้แม้ไม่มีDML ต้องจัดการการคืนหรือreservationที่ทับกันโดยผู้ดูแล
-- Global write serializationเหมาะงานเรียน throughputต่ำกว่าresource-specificlocking; timeout/deadlockต้องretrywholeoperation
-- Combined operationไม่มีFKbooking↔rentalตามEER การยกเลิกbookingไม่ยกเลิกrentalอัตโนมัติ
-- ยังต้องจัดทำเล่มรายงานPDFและคลิปของสมาชิกกลุ่มตามAssignment แยกจากsource-codeZIPนี้
+## Reporting interpretation
+
+View ปัจจุบันคืน **ราย resource ต่อสัปดาห์** และ resource_category ระบุประเภท output structure และสูตรยังเดิม หากต้องรวมประเภท ให้ group by week_start, resource_type, resource_category แล้วคำนวณ:
+
+`100.0 * SUM(utilized_units) / NULLIF(SUM(capacity_units), 0)`
+
+ห้ามเฉลี่ย utilization_percent ราย resource โดยตรง และห้ามรวม court minutes กับ equipment piece-days เป็นตัวหารเดียวกัน ยังไม่เปลี่ยน output จนกว่าจะได้ requirement จากผู้สอนที่ชัดเจน ใช้เวลาเปิด/stock ปัจจุบันเป็น denominator ตามข้อจำกัด schema เดิม
+
+## ปิด runtime evidence เมื่อ Engine พร้อม
+
+1. รัน database/logic.sql ที่ปรับแล้วบน DB ทดสอบที่ใช้ schema เดิม; สำหรับเครื่องใหม่ รัน schema → logic → data ตาม README
+2. ตั้ง local .env ด้วยบัญชี developer สำหรับ tests; รัน npm run db:verify, npm run db:test, npm run db:concurrency แล้วเก็บผลจริง
+3. ใช้บัญชี app ตาม permissions.sql ทดสอบเว็บเชื่อม DB จริง รวม reports, combined booking, payment, return/cancel
+4. ภาพใน docs/screenshots ยังเป็น UI/service-fixture preview จากรอบเดิม ต้องถ่ายใหม่จาก DB จริงสำหรับเล่มรายงานและคลิป
+
+ยังไม่ประกาศ PROJECT READY FOR SUBMISSION และไม่เปลี่ยน tentative issue เรื่อง driver precedingErrors ที่ Audit ยังไม่ได้ยืนยัน
+
+## ขอบเขตที่คงเดิม
+
+schema.sql, schema.json, data.sql, queries.sql, permissions.sql และ concurrency/business-integrity trigger/SP implementations ไม่เปลี่ยน เปลี่ยน logic.sql เฉพาะตัวสร้างสัปดาห์ของ view ไม่มี table/column/constraint/BR ใหม่

@@ -134,12 +134,14 @@ SP เปิด transaction + `SET XACT_ABORT ON` + TRY/CATCH + COMMIT/ROLLBACK,
 
 ## 9. Weekly reporting view
 
-`vw_FacilityUtilizationReport` แยก resource_type court/equipment และคืน resource_category เพื่อสรุปตามประเภทได้ equipment.facility_id ใน view เป็น NULL ตาม stock กลาง ไม่สร้างความสัมพันธ์ปลอม
+`vw_FacilityUtilizationReport` คืน utilization **ราย resource ต่อสัปดาห์** แยก resource_type court/equipment และใช้ resource_category ระบุประเภท equipment.facility_id ใน view เป็น NULL ตาม stock กลาง ไม่สร้างความสัมพันธ์ปลอม หน้า Reports คืนทรัพยากรทุกแถวของสัปดาห์ที่เลือก ไม่มี TOP(80) หรือการตัดแถวเงียบ
 
 - court = booked_minutes / (นาทีเปิดต่อวัน × 7) × 100; เฉพาะ confirmed
 - equipment = quantity-days ที่ทับช่วง Monday–Sunday / (total_quantity × 7) × 100; ยกเว้น cancelled
 - stock เป็น 0 → utilization NULL ด้วย NULLIF
-- Monday คำนวณอิง 1900-01-01 ไม่ขึ้นกับ DATEFIRST; spine เริ่มสัปดาห์ข้อมูลแรกถึงวันสุดท้ายของข้อมูลหรือวันนี้ (สูงสุด 10,000 สัปดาห์)
+- Monday คำนวณอิง 1900-01-01 ไม่ขึ้นกับ DATEFIRST; spine เริ่มสัปดาห์ข้อมูลแรกถึงวันสุดท้ายของข้อมูลหรือวันนี้ (สูงสุด 20,000 สัปดาห์ ครอบคลุมช่วงวันที่ของแอป ค.ศ. 1900–2099 ทั้งหมด)
+
+หากต้องการสรุปรวมประเภท ให้ GROUP BY week_start, resource_type, resource_category แล้วคำนวณ `100.0 * SUM(utilized_units) / NULLIF(SUM(capacity_units), 0)` โดยรวมเฉพาะหน่วยเดียวกัน ห้ามใช้ AVG(utilization_percent) หรือเฉลี่ยเปอร์เซ็นต์ราย resource โดยตรง View และ output structure ปัจจุบันยังคงเดิมจนกว่าจะมี requirement จากอาจารย์ที่ชัดเจน
 
 View ใช้เวลาทำการและ stock **ปัจจุบัน** เป็นตัวหารย้อนหลัง เพราะ schema ไม่มี capacity history จึงเป็น utilization เทียบความจุปัจจุบัน รวม planned rental dates ในอนาคตด้วย ไม่อ้างว่าเป็น audit ประวัติความจุที่เปลี่ยนไป
 
@@ -173,8 +175,8 @@ npm run db:concurrency
 ```
 
 - npm test: ตรวจ validation, HTTP/EJS pages, CSRF, SQL allowlist และ TVP/SP contract ใช้ service test doubles ไม่มีการอ้างว่าทดสอบ DB จริง
-- db:verify: ตรวจ schema กับ catalog, PK/FK/AK, types, nullability, FK actions, constraints, จำนวน seed, queries ทั้งสิบคืนผล และ weekly view
-- db:test หรือรัน database/tests.sql ใน SSMS: 46 positive/negative cases, fixtures ใน transaction และ rollback ทุก case รวม SP failure กลางทาง sequences มีช่องว่างได้
+- db:verify: ตรวจ schema กับ catalog, types/nullability/PK, FK parent/target schema-table-column และ actions, unique index ordered key columns/filter, trigger name/parent/type/events, constraints, จำนวน seed, queries ทั้งสิบคืนผล และ weekly view
+- db:test หรือรัน database/tests.sql ใน SSMS: 58 positive/negative cases (รวม numerical reporting, actual-return day, 81 resources และ date boundaries), fixtures ใน transaction และ rollback ทุก case รวม SP failure กลางทาง sequences มีช่องว่างได้
 - db:concurrency: 2 sessions จริง ทดสอบ court และ equipment ชิ้นสุดท้าย; เก็บ fixture ประวัติไว้แล้ว cancelled/inactive ไม่มี hard delete ให้รันกับ DB สำหรับพัฒนา
 
 อ่าน `docs/validation_results.md` สำหรับผลตรวจจริงในรอบส่งมอบนี้

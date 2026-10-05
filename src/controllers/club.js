@@ -3,7 +3,7 @@ const ui=require('../config/ui');
 const validate=require('../middleware/validation');
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res)).catch(next);
 function controllers(service) {
-  const resource=req=>{if(!ui.schema[req.params.resource])throw Object.assign(new Error('ไม่พบหน้า'),{status:404});return req.params.resource;};
+  const resource=req=>{if(!Object.hasOwn(ui.schema,req.params.resource))throw Object.assign(new Error('ไม่พบหน้า'),{status:404});return req.params.resource;};
   const editable=table=>{if(!ui.masters.has(table) && table!=='payments')throw Object.assign(new Error('ใช้หน้าธุรกรรมเพื่อทำรายการนี้'),{status:400});};
   return {
     dashboard:wrap(async(req,res)=>res.render('dashboard',{title:'ภาพรวม',data:await service.dashboard()})),

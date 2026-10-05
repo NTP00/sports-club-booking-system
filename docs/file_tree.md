@@ -80,6 +80,8 @@ sports-club-booking-system/
         table.ejs
       reports.ejs
   tests/
+    database_verification.test.js
+    strict_audit.test.js
     validation.test.js
     web.test.js
 ```

@@ -26,7 +26,7 @@
 | Historical identity | booking/rental member/resource และ snapshot immutable; court มีประวัติย้าย facility ไม่ได้ |
 | Maintenance | history/record ไม่ใช่ time scheduling ไม่เปลี่ยนสถานะ resource โดยอัตโนมัติ |
 | Datetimes | schema DATETIME2(0) เป็นเวลาของ SQL Server ไม่มี timezone ใน column; วันที่ธุรกิจ/current-day ใช้เวลาไทยจาก fn_today |
-| Reporting | denominator ใช้ catalog ปัจจุบัน มี zero-usage rows; stock กลาง facility NULL |
+| Reporting | view คืนราย resource/สัปดาห์ พร้อม resource_category; denominator ใช้ catalog ปัจจุบัน มี zero-usage rows; stock กลาง facility NULL; รวมประเภทด้วย SUM(utilized_units)/SUM(capacity_units) × 100 แยก resource_type ไม่เฉลี่ยเปอร์เซ็นต์ |
 | Web scope | no Login ตาม prompt; loopback default, CSRF, parameterized query, escaped EJS, allowlist identifiers |
 
 ## อธิบาย BCNF อย่างไร

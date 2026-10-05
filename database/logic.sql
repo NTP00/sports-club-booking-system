@@ -524,12 +524,12 @@ begin
     end catch;
 end;
 go
--- Monday-based week spine, independent of SET DATEFIRST; 10,000 weeks from
--- earliest stored transaction to the latest planned date or today.
+-- Monday-based week spine, independent of SET DATEFIRST; 20,000 weeks from
+-- earliest stored transaction cover the application's full 1900-2099 window.
 create or alter view dbo.vw_FacilityUtilizationReport
 as
 with digits as (select n from (values(0),(1),(2),(3),(4),(5),(6),(7),(8),(9))v(n)),
-numbers as (select a.n+10*b.n+100*c.n+1000*d.n as n from digits a cross join digits b cross join digits c cross join digits d),
+numbers as (select a.n+10*b.n+100*c.n+1000*d.n+10000*e.n as n from digits a cross join digits b cross join digits c cross join digits d cross join (values(0),(1)) e(n)),
 dates as (select booking_date as d from dbo.court_bookings union all select rental_date from dbo.equipment_rentals
     union all select due_date from dbo.equipment_rentals union all select return_date from dbo.equipment_rentals where return_date is not null
     union all select dbo.fn_today()),

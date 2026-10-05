@@ -186,5 +186,121 @@ go
 exec dbo.sp_test_case @name=N'T46 current stock checks ignore released historical peaks', @expected_error=0, @test_sql=N'insert dbo.equipment_rentals(rental_id,member_id,equipment_id,rental_date,due_date,return_date,quantity,total_amount,status)values(''TRN0000009'',''TMB0000001'',''TEQ0000001'',dateadd(day,-5,@today),dateadd(day,-4,@today),dateadd(day,-4,@today),2,80,''returned'');update dbo.equipment set total_quantity=1 where equipment_id=''TEQ0000001'';insert dbo.equipment_rentals(rental_id,member_id,equipment_id,rental_date,due_date,quantity,total_amount) values(''TRN0000001'',''TMB0000001'',''TEQ0000001'',@today,dateadd(day,1,@today),1,40);';
 go
 
+-- Strict Audit Q02/F01/F05: independent numerical and boundary oracles.
+-- Percentage assertions include the view contract rounding to DECIMAL(10,2).
+
+exec dbo.sp_test_case @name=N'T47 court 60-minute numerical oracle', @expected_error=0, @test_sql=N'
+declare @week date=dateadd(day,-((datediff(day,convert(date,''19000101''),@today)%7+7)%7)-14,@today);
+insert dbo.court_bookings(booking_id,member_id,court_id,booking_date,start_time,end_time,total_amount) values(''TBK0000001'',''TMB0000001'',''TCT0000001'',@week,''09:00'',''10:00'',100);
+if not exists(select 1 from dbo.vw_FacilityUtilizationReport where resource_type=''court'' and resource_id=''TCT0000001'' and week_start=@week and utilized_units=60 and capacity_units=6720 and utilization_percent=convert(decimal(10,2),60.0/6720.0*100)) throw 51980,N''Numerical reporting oracle failed'',1;
+';
+go
+
+exec dbo.sp_test_case @name=N'T48 planned equipment inclusive two-day numerical oracle', @expected_error=0, @test_sql=N'
+declare @week date=dateadd(day,7-((datediff(day,convert(date,''19000101''),@today)%7+7)%7),@today);
+update dbo.equipment set total_quantity=10 where equipment_id=''TEQ0000001'';
+insert dbo.equipment_rentals(rental_id,member_id,equipment_id,rental_date,due_date,return_date,quantity,total_amount,status) values(''TRN0000001'',''TMB0000001'',''TEQ0000001'',@week,dateadd(day,1,@week),null,2,80,''active'');
+if not exists(select 1 from dbo.vw_FacilityUtilizationReport where resource_type=''equipment'' and resource_id=''TEQ0000001'' and week_start=@week and utilized_units=4 and capacity_units=70 and utilization_percent=convert(decimal(10,2),4.0/70.0*100)) throw 51980,N''Numerical reporting oracle failed'',1;
+';
+go
+
+exec dbo.sp_test_case @name=N'T49 zero usage yields zero percent for both resource types', @expected_error=0, @test_sql=N'
+declare @week date=dateadd(day,-((datediff(day,convert(date,''19000101''),@today)%7+7)%7),@today);
+update dbo.equipment set total_quantity=10 where equipment_id=''TEQ0000001'';
+if not exists(select 1 from dbo.vw_FacilityUtilizationReport where resource_type=''court'' and resource_id=''TCT0000001'' and week_start=@week and utilized_units=0 and capacity_units=6720 and utilization_percent=convert(decimal(10,2),0.0/6720.0*100)) throw 51980,N''Numerical reporting oracle failed'',1;
+if not exists(select 1 from dbo.vw_FacilityUtilizationReport where resource_type=''equipment'' and resource_id=''TEQ0000001'' and week_start=@week and utilized_units=0 and capacity_units=70 and utilization_percent=convert(decimal(10,2),0.0/70.0*100)) throw 51980,N''Numerical reporting oracle failed'',1;
+';
+go
+
+exec dbo.sp_test_case @name=N'T50 cancelled court and rental do not contribute usage', @expected_error=0, @test_sql=N'
+declare @week date=dateadd(day,-((datediff(day,convert(date,''19000101''),@today)%7+7)%7)-14,@today);
+update dbo.equipment set total_quantity=10 where equipment_id=''TEQ0000001'';
+insert dbo.court_bookings(booking_id,member_id,court_id,booking_date,start_time,end_time,total_amount) values(''TBK0000001'',''TMB0000001'',''TCT0000001'',@week,''09:00'',''10:00'',100);
+update dbo.court_bookings set status=''cancelled'' where booking_id=''TBK0000001'';
+insert dbo.equipment_rentals(rental_id,member_id,equipment_id,rental_date,due_date,return_date,quantity,total_amount,status) values(''TRN0000001'',''TMB0000001'',''TEQ0000001'',@week,dateadd(day,1,@week),null,2,80,''cancelled'');
+if not exists(select 1 from dbo.vw_FacilityUtilizationReport where resource_type=''court'' and resource_id=''TCT0000001'' and week_start=@week and utilized_units=0 and capacity_units=6720 and utilization_percent=convert(decimal(10,2),0.0/6720.0*100)) throw 51980,N''Numerical reporting oracle failed'',1;
+if not exists(select 1 from dbo.vw_FacilityUtilizationReport where resource_type=''equipment'' and resource_id=''TEQ0000001'' and week_start=@week and utilized_units=0 and capacity_units=70 and utilization_percent=convert(decimal(10,2),0.0/70.0*100)) throw 51980,N''Numerical reporting oracle failed'',1;
+';
+go
+
+exec dbo.sp_test_case @name=N'T51 early returned rental uses actual return not planned due date', @expected_error=0, @test_sql=N'
+declare @week date=dateadd(day,-((datediff(day,convert(date,''19000101''),@today)%7+7)%7)-14,@today);
+update dbo.equipment set total_quantity=10 where equipment_id=''TEQ0000001'';
+insert dbo.equipment_rentals(rental_id,member_id,equipment_id,rental_date,due_date,return_date,quantity,total_amount,status) values(''TRN0000001'',''TMB0000001'',''TEQ0000001'',@week,dateadd(day,4,@week),dateadd(day,1,@week),2,80,''returned'');
+if not exists(select 1 from dbo.vw_FacilityUtilizationReport where resource_type=''equipment'' and resource_id=''TEQ0000001'' and week_start=@week and utilized_units=4 and capacity_units=70 and utilization_percent=convert(decimal(10,2),4.0/70.0*100)) throw 51980,N''Numerical reporting oracle failed'',1;
+';
+go
+
+exec dbo.sp_test_case @name=N'T52 overdue rental occupies all seven days of later week', @expected_error=0, @test_sql=N'
+declare @week date=dateadd(day,-((datediff(day,convert(date,''19000101''),@today)%7+7)%7)-14,@today);
+update dbo.equipment set total_quantity=10 where equipment_id=''TEQ0000001'';
+insert dbo.equipment_rentals(rental_id,member_id,equipment_id,rental_date,due_date,return_date,quantity,total_amount,status) values(''TRN0000001'',''TMB0000001'',''TEQ0000001'',dateadd(day,-7,@week),dateadd(day,-6,@week),null,2,80,''active'');
+if not exists(select 1 from dbo.vw_FacilityUtilizationReport where resource_type=''equipment'' and resource_id=''TEQ0000001'' and week_start=@week and utilized_units=14 and capacity_units=70 and utilization_percent=convert(decimal(10,2),14.0/70.0*100)) throw 51980,N''Numerical reporting oracle failed'',1;
+';
+go
+
+exec dbo.sp_test_case @name=N'T53 cross-week returned rental allocates inclusive days to each week', @expected_error=0, @test_sql=N'
+declare @week date=dateadd(day,-((datediff(day,convert(date,''19000101''),@today)%7+7)%7)-14,@today);
+update dbo.equipment set total_quantity=10 where equipment_id=''TEQ0000001'';
+insert dbo.equipment_rentals(rental_id,member_id,equipment_id,rental_date,due_date,return_date,quantity,total_amount,status) values(''TRN0000001'',''TMB0000001'',''TEQ0000001'',dateadd(day,5,@week),dateadd(day,8,@week),dateadd(day,8,@week),2,80,''returned'');
+if not exists(select 1 from dbo.vw_FacilityUtilizationReport where resource_type=''equipment'' and resource_id=''TEQ0000001'' and week_start=@week and utilized_units=4 and capacity_units=70 and utilization_percent=convert(decimal(10,2),4.0/70.0*100)) throw 51980,N''Numerical reporting oracle failed'',1;
+if not exists(select 1 from dbo.vw_FacilityUtilizationReport where resource_type=''equipment'' and resource_id=''TEQ0000001'' and week_start=dateadd(day,7,@week) and utilized_units=4 and capacity_units=70 and utilization_percent=convert(decimal(10,2),4.0/70.0*100)) throw 51980,N''Numerical reporting oracle failed'',1;
+';
+go
+
+exec dbo.sp_test_case @name=N'T54 zero equipment stock returns NULL percent without division error', @expected_error=0, @test_sql=N'
+declare @week date=dateadd(day,-((datediff(day,convert(date,''19000101''),@today)%7+7)%7),@today);
+update dbo.equipment set total_quantity=0 where equipment_id=''TEQ0000001'';
+if not exists(select 1 from dbo.vw_FacilityUtilizationReport where resource_type=''equipment'' and resource_id=''TEQ0000001'' and week_start=@week and utilized_units=0 and capacity_units=0 and utilization_percent is null) throw 51980,N''Numerical reporting oracle failed'',1;
+';
+go
+
+exec dbo.sp_test_case @name=N'T55 actual return day is included in reported piece-days', @expected_error=0, @test_sql=N'
+declare @week date=dateadd(day,-((datediff(day,convert(date,''19000101''),@today)%7+7)%7)-14,@today);
+insert dbo.equipment_rentals(rental_id,member_id,equipment_id,rental_date,due_date,return_date,quantity,total_amount,status) values(''TRN0000001'',''TMB0000001'',''TEQ0000001'',@week,dateadd(day,4,@week),dateadd(day,1,@week),2,80,''returned'');
+if not exists(select 1 from dbo.vw_FacilityUtilizationReport where resource_type=''equipment'' and resource_id=''TEQ0000001'' and week_start=@week and utilized_units=4 and capacity_units=14 and utilization_percent=convert(decimal(10,2),4.0/14.0*100)) throw 51980,N''Numerical reporting oracle failed'',1;
+';
+go
+
+exec dbo.sp_test_case @name=N'T56 actual return day still consumes stock until the next day', @expected_error=51005, @test_sql=N'
+declare @week date=dateadd(day,-((datediff(day,convert(date,''19000101''),@today)%7+7)%7)-14,@today);
+insert dbo.equipment_rentals(rental_id,member_id,equipment_id,rental_date,due_date,return_date,quantity,total_amount,status) values(''TRN0000001'',''TMB0000001'',''TEQ0000001'',@week,dateadd(day,4,@week),dateadd(day,1,@week),2,80,''returned'');
+insert dbo.equipment_rentals(rental_id,member_id,equipment_id,rental_date,due_date,return_date,quantity,total_amount,status) values(''TRN0000002'',''TMB0000001'',''TEQ0000001'',dateadd(day,1,@week),dateadd(day,1,@week),null,1,80,''active'');
+';
+go
+
+exec dbo.sp_test_case @name=N'T57 week spine covers both application date boundaries', @expected_error=0, @test_sql=N'
+update dbo.members set membership_start=''19000101'',membership_end=''20991231'' where member_id=''TMB0000001'';
+insert dbo.court_bookings(booking_id,member_id,court_id,booking_date,start_time,end_time,total_amount) values
+(''TBK0000001'',''TMB0000001'',''TCT0000001'',''19000101'',''09:00'',''10:00'',100),
+(''TBK0000002'',''TMB0000001'',''TCT0000001'',''20991231'',''09:00'',''10:00'',100);
+declare @first date=''19000101'',@last date=''20991231'';
+set @last=dateadd(day,-((datediff(day,convert(date,''19000101''),@last)%7+7)%7),@last);
+if not exists(select 1 from dbo.vw_FacilityUtilizationReport where resource_type=''court'' and resource_id=''TCT0000001'' and week_start=@first and utilized_units=60 and capacity_units=6720 and utilization_percent=convert(decimal(10,2),60.0/6720.0*100)) throw 51980,N''Numerical reporting oracle failed'',1;
+if not exists(select 1 from dbo.vw_FacilityUtilizationReport where resource_type=''court'' and resource_id=''TCT0000001'' and week_start=@last and utilized_units=60 and capacity_units=6720 and utilization_percent=convert(decimal(10,2),60.0/6720.0*100)) throw 51980,N''Numerical reporting oracle failed'',1;
+';
+go
+
+exec dbo.sp_test_case @name=N'T58 report view contains all 41 courts and 40 equipment resources', @expected_error=0, @test_sql=N'
+declare @week date=dateadd(day,-((datediff(day,convert(date,''19000101''),@today)%7+7)%7),@today);
+declare @i int=1;
+while @i<=41
+begin
+    insert dbo.courts(court_id,facility_id,court_name,court_type,capacity,hourly_rate) values(''CQA''+right(''0000000''+convert(varchar(7),@i),7),''TFC0000001'',N''Oracle court'',N''tennis'',4,100);
+    set @i=@i+1;
+end;
+set @i=1;
+while @i<=40
+begin
+    insert dbo.equipment(equipment_id,equipment_name,equipment_type,total_quantity,rental_rate) values(''EQA''+right(''0000000''+convert(varchar(7),@i),7),N''Oracle equipment'',N''racket'',10,20);
+    set @i=@i+1;
+end;
+if (select count(*) from dbo.vw_FacilityUtilizationReport where week_start=@week and
+    ((resource_type=''court'' and resource_id between ''CQA0000001'' and ''CQA0000041'') or
+     (resource_type=''equipment'' and resource_id between ''EQA0000001'' and ''EQA0000040'')))<>81
+    throw 51980,N''Report lost resources'',1;
+';
+go
+
 drop procedure dbo.sp_test_case;
 go

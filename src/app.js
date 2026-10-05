@@ -14,9 +14,10 @@ function createApp(service=createService()) {
   app.disable('x-powered-by');
   app.set('view engine','ejs');app.set('views',path.join(__dirname,'views'));
   app.use(helmet({contentSecurityPolicy:{directives:{upgradeInsecureRequests:null}},hsts:false}));
+  // Parser errors skip later middleware; the error page still needs UI locals.
+  app.use((req,res,next)=>{Object.assign(res.locals,ui,{path:req.path});next();});
   app.use(express.urlencoded({extended:true,limit:'64kb',parameterLimit:500}));
   app.use(express.static(path.join(__dirname,'public')));
-  app.use((req,res,next)=>{Object.assign(res.locals,ui,{path:req.path});next();});
   app.get('/health',async(req,res)=>{
     try {await service.run('select 1 as ok');res.json({status:'ok',database:'connected'});}
     catch {res.status(503).json({status:'unavailable',database:'disconnected'});}

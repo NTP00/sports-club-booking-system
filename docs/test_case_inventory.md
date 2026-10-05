@@ -48,5 +48,19 @@
 | T44 client-supplied snapshot ignored | 0 |
 | T45 completed historical rentals do not prevent stock retirement | 0 |
 | T46 current stock checks ignore released historical peaks | 0 |
+| T47 court 60-minute numerical oracle | 0 |
+| T48 planned equipment inclusive two-day numerical oracle | 0 |
+| T49 zero usage yields zero percent for both resource types | 0 |
+| T50 cancelled court and rental do not contribute usage | 0 |
+| T51 early returned rental uses actual return not planned due date | 0 |
+| T52 overdue rental occupies all seven days of later week | 0 |
+| T53 cross-week returned rental allocates inclusive days to each week | 0 |
+| T54 zero equipment stock returns NULL percent without division error | 0 |
+| T55 actual return day is included in reported piece-days | 0 |
+| T56 actual return day still consumes stock until the next day | 51005 |
+| T57 week spine covers both application date boundaries | 0 |
+| T58 report view contains all 41 courts and 40 equipment resources | 0 |
 
 ทุก case มี fixtures ใน transaction แยกกันและตรวจจำนวน booking/rental/payment หลัง rollback ของ negative case
+
+T47–T58 เพิ่มจาก Strict Audit: reporting numerical oracles, actual-return inclusivity, full 1900–2099 week coverage และ 81 resources; ต้อง execute บน SQL Server จริง ไม่ถือว่า PASS จากการ parse เพียงอย่างเดียว

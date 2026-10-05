@@ -17,7 +17,7 @@ function createService(database=db) {
     for(const [name,type,value] of params) request.input(name,type,value);
     return request.query(statement);
   };
-  const tableMeta=table=>{ const m=schema[table];if(!m) throw Object.assign(new Error('ไม่พบหน้า'),{status:404});return m; };
+  const tableMeta=table=>{ if(!Object.hasOwn(schema,table)) throw Object.assign(new Error('ไม่พบหน้า'),{status:404});return schema[table]; };
   const get=async(table,id)=>{
     const m=tableMeta(table);
     const result=await run(`select * from dbo.${table} where ${m.pk}=@id`,[['id',db.sql.VarChar(10),id]]);
@@ -112,7 +112,7 @@ function createService(database=db) {
     },
     async reports(week=null) {
       const params=week?[['week',db.sql.Date,week]]:[];
-      return (await run(`select top(80) * from dbo.vw_FacilityUtilizationReport where week_start=${week?'@week':"dateadd(day,-((datediff(day,convert(date,'19000101'),dbo.fn_today())%7+7)%7),dbo.fn_today())"} order by resource_type,resource_id`,params)).recordset;
+      return (await run(`select * from dbo.vw_FacilityUtilizationReport where week_start=${week?'@week':"dateadd(day,-((datediff(day,convert(date,'19000101'),dbo.fn_today())%7+7)%7),dbo.fn_today())"} order by resource_type,resource_id`,params)).recordset;
     }
   };
 }
