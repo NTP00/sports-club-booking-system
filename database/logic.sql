@@ -528,22 +528,107 @@ go
 -- earliest stored transaction cover the application's full 1900-2099 window.
 create or alter view dbo.vw_FacilityUtilizationReport
 as
-with digits as (select n from (values(0),(1),(2),(3),(4),(5),(6),(7),(8),(9))v(n)),
-numbers as (select a.n+10*b.n+100*c.n+1000*d.n+10000*e.n as n from digits a cross join digits b cross join digits c cross join digits d cross join (values(0),(1)) e(n)),
-dates as (select booking_date as d from dbo.court_bookings union all select rental_date from dbo.equipment_rentals
-    union all select due_date from dbo.equipment_rentals union all select return_date from dbo.equipment_rentals where return_date is not null
-    union all select dbo.fn_today()),
-bounds as (select min(d) as lo,max(d) as hi from dates),
-monday as (select dateadd(day,-((datediff(day,convert(date,'19000101'),lo)%7+7)%7),lo) as first_monday,hi from bounds),
-weeks as (select dateadd(day,7*n,first_monday) as week_start from monday cross join numbers where dateadd(day,7*n,first_monday)<=hi),
+with digits as (
+    select n
+    from (values(0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) v(n)
+),
+numbers as (
+    select a.n + 10*b.n + 100*c.n + 1000*d.n + 10000*e.n as n
+    from digits a
+    cross join digits b
+    cross join digits c
+    cross join digits d
+    cross join (values(0),(1)) e(n)
+),
+dates as (
+    select booking_date as d from dbo.court_bookings
+    union all
+    select rental_date from dbo.equipment_rentals
+    union all
+    select due_date from dbo.equipment_rentals
+    union all
+    select return_date from dbo.equipment_rentals where return_date is not null
+    union all
+    select dbo.fn_today()
+),
+bounds as (
+    select min(d) as lo, max(d) as hi
+    from dates
+),
+monday as (
+    select
+        dateadd(
+            day,
+            -((datediff(day, convert(date,'19000101'), lo) % 7 + 7) % 7),
+            lo
+        ) as first_monday,
+        hi
+    from bounds
+),
+weeks as (
+    select dateadd(day, 7*n, first_monday) as week_start
+    from monday
+    cross join numbers
+    where dateadd(day, 7*n, first_monday) <= hi
+),
 court_report as (
-    select w.week_start,convert(varchar(10),'court') as resource_type,c.court_id as resource_id,c.court_name as resource_name,
-        c.court_type as resource_category,c.facility_id,
-        convert(decimal(19,4),coalesce(b.used,0)) as utilized_units,
-        convert(decimal(19,4),datediff(second,f.opening_time,f.closing_time)/60.0*7) as capacity_units
-    from weeks w cross join dbo.courts c join dbo.facilities f on f.facility_id=c.facility_id
-    outer apply(select sum(convert(bigint,datediff(second,b.start_time,b.end_time)))/60.0 as used from dbo.court_bookings b
-        where b.court_id=c.court_id and b.status='confirmed' and b.booking_date>=w.week_start and b.booking_date<dateadd(day,7,w.week_start)) b
+    select
+        w.week_start,
+        convert(varchar(10),'court') as resource_type,
+        c.court_id as resource_id,
+        c.court_name as resource_name,
+        c.court_type as resource_category,
+        c.facility_id,
+        convert(decimal(19,4), coalesce(b.used,0)) as utilized_units,
+        convert(
+            decimal(19,4),
+            datediff(second, f.opening_time, f.closing_time) / 60.0 * 7
+        ) as capacity_units
+    from weeks w
+    cross join dbo.courts c
+    join dbo.facilities f
+        on f.facility_id = c.facility_id
+    outer apply (
+        select
+            sum(convert(bigint, datediff(second, b.start_time, b.end_time))) / 60.0 as used
+        from dbo.court_bookings b
+        where b.court_id = c.court_id
+          and b.status = 'confirmed'
+          and b.booking_date >= w.week_start
+          and b.booking_date < dateadd(day, 7, w.week_start)
+    ) b
+),
+-- Pre-aggregate equipment usage by week/equipment so that SQL Server does not
+-- reject an aggregate expression that mixes inner columns with outer references.
+equipment_usage as (
+    select
+        w.week_start,
+        p.equipment_id,
+        sum(
+            convert(bigint, p.quantity) *
+            (
+                datediff(
+                    day,
+                    case
+                        when p.rental_date < w.week_start
+                            then w.week_start
+                        else p.rental_date
+                    end,
+                    case
+                        when p.effective_end > dateadd(day, 6, w.week_start)
+                            then dateadd(day, 6, w.week_start)
+                        else p.effective_end
+                    end
+                ) + 1
+            )
+        ) as used
+    from weeks w
+    join dbo.fn_rental_periods() p
+      on p.rental_date <= dateadd(day, 6, w.week_start)
+     and p.effective_end >= w.week_start
+    group by
+        w.week_start,
+        p.equipment_id
 ),
 equipment_report as (
     select
