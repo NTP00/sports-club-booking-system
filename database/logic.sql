@@ -546,18 +546,41 @@ court_report as (
         where b.court_id=c.court_id and b.status='confirmed' and b.booking_date>=w.week_start and b.booking_date<dateadd(day,7,w.week_start)) b
 ),
 equipment_report as (
-    select w.week_start,convert(varchar(10),'equipment') as resource_type,e.equipment_id as resource_id,e.equipment_name as resource_name,
-        e.equipment_type as resource_category,convert(varchar(10),null) as facility_id,
-        convert(decimal(19,4),coalesce(r.used,0)) as utilized_units,
-        convert(decimal(19,4),convert(bigint,e.total_quantity)*7) as capacity_units
-    from weeks w cross join dbo.equipment e
-    outer apply(select sum(convert(bigint,p.quantity)*(datediff(day,
-        case when p.rental_date<w.week_start then w.week_start else p.rental_date end,
-        case when p.effective_end>dateadd(day,6,w.week_start) then dateadd(day,6,w.week_start) else p.effective_end end)+1)) as used
-        from dbo.fn_rental_periods() p where p.equipment_id=e.equipment_id and p.rental_date<=dateadd(day,6,w.week_start) and p.effective_end>=w.week_start) r
+    select
+        w.week_start,
+        convert(varchar(10),'equipment') as resource_type,
+        e.equipment_id as resource_id,
+        e.equipment_name as resource_name,
+        e.equipment_type as resource_category,
+        convert(varchar(10), null) as facility_id,
+        convert(decimal(19,4), coalesce(u.used,0)) as utilized_units,
+        convert(
+            decimal(19,4),
+            convert(bigint, e.total_quantity) * 7
+        ) as capacity_units
+    from weeks w
+    cross join dbo.equipment e
+    left join equipment_usage u
+      on u.week_start = w.week_start
+     and u.equipment_id = e.equipment_id
 ),
-combined as (select * from court_report union all select * from equipment_report)
-select week_start,resource_type,resource_id,resource_name,resource_category,facility_id,utilized_units,capacity_units,
-    convert(decimal(10,2),100.0*utilized_units/nullif(capacity_units,0)) as utilization_percent
+combined as (
+    select * from court_report
+    union all
+    select * from equipment_report
+)
+select
+    week_start,
+    resource_type,
+    resource_id,
+    resource_name,
+    resource_category,
+    facility_id,
+    utilized_units,
+    capacity_units,
+    convert(
+        decimal(10,2),
+        100.0 * utilized_units / nullif(capacity_units,0)
+    ) as utilization_percent
 from combined;
 go
