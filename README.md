@@ -136,6 +136,8 @@ SP เปิด transaction + `SET XACT_ABORT ON` + TRY/CATCH + COMMIT/ROLLBACK,
 
 `vw_FacilityUtilizationReport` คืน utilization **ราย resource ต่อสัปดาห์** แยก resource_type court/equipment และใช้ resource_category ระบุประเภท equipment.facility_id ใน view เป็น NULL ตาม stock กลาง ไม่สร้างความสัมพันธ์ปลอม หน้า Reports คืนทรัพยากรทุกแถวของสัปดาห์ที่เลือก ไม่มี TOP(80) หรือการตัดแถวเงียบ
 
+หน้า Reports ใช้ SQL คำนวณสัปดาห์ที่เลือกใน `reports()` โดยตรง ส่วน view เป็น reporting object ของโจทย์ ชุด `db:reports` ตรวจ service จริงกับ numerical oracle และ cross-check view เพื่อป้องกันสูตรสองทางคลาดเคลื่อน
+
 - court = booked_minutes / (นาทีเปิดต่อวัน × 7) × 100; เฉพาะ confirmed
 - equipment = quantity-days ที่ทับช่วง Monday–Sunday / (total_quantity × 7) × 100; ยกเว้น cancelled
 - stock เป็น 0 → utilization NULL ด้วย NULLIF
@@ -178,6 +180,36 @@ npm run db:concurrency
 - db:verify: ตรวจ schema กับ catalog, types/nullability/PK, FK parent/target schema-table-column และ actions, unique index ordered key columns/filter, trigger name/parent/type/events, constraints, จำนวน seed, queries ทั้งสิบคืนผล และ weekly view
 - db:test หรือรัน database/tests.sql ใน SSMS: 58 positive/negative cases (รวม numerical reporting, actual-return day, 81 resources และ date boundaries), fixtures ใน transaction และ rollback ทุก case รวม SP failure กลางทาง sequences มีช่องว่างได้
 - db:concurrency: 2 sessions จริง ทดสอบ court และ equipment ชิ้นสุดท้าย; เก็บ fixture ประวัติไว้แล้ว cancelled/inactive ไม่มี hard delete ให้รันกับ DB สำหรับพัฒนา
+
+### Final report integration regression (SQL Server จริง)
+
+`npm test` มี 61 tests; 4 tests ใหม่ตรวจ development-DB guard และการสร้าง mutation เฉพาะ reports() โดยไม่เขียน source ผล numerical จริงอยู่ในคำสั่งต่อไปนี้แยกจาก Node/unit tests:
+
+```powershell
+# ใช้ .env บัญชี developer เช่น sports_club_test กับ development/test DB เท่านั้น
+# DB_TEST_DATABASE ต้องตรง DB_DATABASE และชื่อ DB ที่เชื่อมต่อจริง
+$env:DB_TEST_DATABASE = 'sports_club_booking'
+npm run db:verify
+npm run db:test
+npm run db:concurrency
+npm run db:reports
+npm run db:reports:mutation
+```
+
+- `db:reports` เรียก application service `createService(transactionDatabase).reports(week)` ที่ไม่ได้แก้ implementation: transactionDatabase สร้าง **mssql.Request จริงใน sql.Transaction เดียวกับ fixture** เพื่อให้เห็น uncommitted fixture และ rollback ได้ ไม่มี mock numerical result
+- ตรวจ 6 สัปดาห์/กรณี รวม default Monday, Monday/Sunday boundaries, court 60 นาทีและ 90 วินาที, equipment inclusive/returned/overdue/cancelled/cross-week, zero usage/stock และ 41 courts +40 equipment ทุกสัปดาห์ พร้อมเทียบ view
+- ค่าตั้งต้นที่รู้ล่วงหน้า: court 60/6720 ×100 =0.89%, equipment 4/70 ×100 =5.71%; ทุกแถวตรวจ week_start, utilized_units, capacity_units, utilization_percent
+- Fixture ใช้ QAF/QAM/QAC/QAE/QAB/QAR reserved IDs; ถ้าชนจะหยุด ไม่ลบ/ทับข้อมูลเดิม ทุกการรัน rollback และตรวจว่าไม่มี fixture เหลือ ไม่มี COMMIT, hard DELETE, sequence reset หรือ table เพิ่ม
+- `db:reports:mutation` ต้องให้ baseline ผ่านก่อน แล้วเปลี่ยน confirmed เป็น cancelled และ inclusive +1 เป็น +0 ใน module ชั่วคราวใน memory; ต้องถูก numerical assertion ปฏิเสธทั้งสองแบบ SQL/connection/permission error ไม่นับเป็น mutation detection ตรวจ source เดิม byte-identical ก่อนจบ
+- ถ้า baseline numerical assertion ไม่ผ่าน ให้หยุดและวิเคราะห์ mismatch ก่อนแก้ production logic
+
+จากนั้นใช้ `.env` บัญชี **sports_club_app** เดิมและรัน:
+
+```powershell
+npm run db:app
+```
+
+คำสั่งนี้ read-only ตรวจ principal ต้องเป็น sports_club_app, EXECUTE dbo.fn_today ที่เพิ่มใน c4a1081, SELECT rental function, `createService().reports()` จริง และ HTTP /health, /, /court_bookings/new, /reports ใน server ชั่วคราวบน loopback ไม่ต้องหยุดเว็บ port3000 ที่เปิดอยู่ ใช้บัญชี developer/DBA แทนไม่ได้ อย่าใส่ credential ในผลทดสอบหรือ Git
 
 อ่าน `docs/validation_results.md` สำหรับผลตรวจจริงในรอบส่งมอบนี้
 

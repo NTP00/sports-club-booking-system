@@ -64,3 +64,24 @@
 ทุก case มี fixtures ใน transaction แยกกันและตรวจจำนวน booking/rental/payment หลัง rollback ของ negative case
 
 T47–T58 เพิ่มจาก Strict Audit: reporting numerical oracles, actual-return inclusivity, full 1900–2099 week coverage และ 81 resources; ต้อง execute บน SQL Server จริง ไม่ถือว่า PASS จากการ parse เพียงอย่างเดียว
+
+## Application reports integration (แยกจาก SQL58)
+
+`npm run db:reports` → tests/reports.integration.js ใช้ mssql.Request/Transaction จริงและ application service เดิม ทุก case ตรวจ numerical output ของ service และ view กับ oracle ที่คำนวณล่วงหน้า รวม fixture 41 courts +40 equipment ทุกสัปดาห์ ไม่ใช้ service/DB double
+
+| Case | Expected results หลัก |
+|---|---|
+| สัปดาห์ก่อน: Sunday ก่อน Monday ที่เลือก | court60/6720=0.89%; cross-week returned equipment2/70=2.86%; overdue14/70=20% |
+| สัปดาห์อดีตที่เลือก | court60min=0.89%, 90sec=1.5min/6720=0.02%; Sunday อยู่สัปดาห์นี้; returned equipment4/70=5.71%; actual same-day return2/70=2.86% |
+| Monday ถัดไป | booking วัน Monday ถัดไป60min อยู่สัปดาห์ถัดไป; รายการ Sunday ก่อนหน้าไม่ถูกนับซ้ำ |
+| สัปดาห์อนาคต | planned quantity2 ×inclusive2days=4/70=5.71%; cross-week Saturday–Sunday=4/70; court60min=0.89% |
+| สัปดาห์หลังอนาคต | cross-week Monday–Tuesday=4/70=5.71%; วันก่อน Monday ไม่ถูกนับซ้ำ |
+| default week | week_start เป็น current Monday; continuing overdue14/70=20%; unused resources0% |
+
+ทุก case ตรวจ zero usage, cancelled exclusion ตาม fixture, zero capacity=NULL และครบ81resources; fixtureอยู่ใน transaction เดียวกับ service แล้ว rollback/ตรวจ residue0 ห้ามรันบน production DB และต้องตั้ง DB_TEST_DATABASE ยืนยันชื่อ development DB ตรงกับ connection
+
+`npm run db:reports:mutation` รัน baseline ก่อน และต้องจับสอง mutation ของ service ด้วย real numerical assertions: confirmed→cancelled และ inclusive+1→+0 ไม่มีการเขียน source mutation ลง disk
+
+`npm run db:app` ตรวจบัญชี sports_club_app จริง รวม fn_today EXECUTE, rental function SELECT, reports() และ HTTP runtime paths ไม่มีการเขียนข้อมูล
+
+Node suite มี61tests:57เดิม +4 guard/mutation-construction checks; ไม่รวม real-DB integration และไม่ถือว่า mutation detection PASS จน execute คำสั่งบน Engine

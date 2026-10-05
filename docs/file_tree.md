@@ -39,6 +39,8 @@ sports-club-booking-system/
     run_sql_tests.js
     sql_runner.js
     test_concurrency.js
+    test_report_mutations.js
+    verify_app_runtime.js
     verify_database.js
   src/
     app.js
@@ -81,6 +83,8 @@ sports-club-booking-system/
       reports.ejs
   tests/
     database_verification.test.js
+    report_qa.test.js
+    reports.integration.js
     strict_audit.test.js
     validation.test.js
     web.test.js

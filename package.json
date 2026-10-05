@@ -10,7 +10,10 @@
     "test": "node --test tests/*.test.js",
     "db:verify": "node scripts/verify_database.js",
     "db:test": "node scripts/run_sql_tests.js",
-    "db:concurrency": "node scripts/test_concurrency.js"
+    "db:concurrency": "node scripts/test_concurrency.js",
+    "db:reports": "node tests/reports.integration.js",
+    "db:reports:mutation": "node scripts/test_report_mutations.js",
+    "db:app": "node scripts/verify_app_runtime.js"
   },
   "dependencies": {
     "dotenv": "^16.6.1",

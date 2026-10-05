@@ -2,6 +2,8 @@
 
 ต้องใช้ SQL Server จริง การอ่านโค้ด/ผ่าน syntax parser ยังไม่ใช่หลักฐานว่า concurrency test ผ่าน ดูผลที่ยืนยันแล้วใน validation_results.md
 
+Final QA context: ผู้ใช้ยืนยันว่าเคยรัน court/equipment concurrency ผ่านบนเครื่อง SQL Server จริงแล้ว รอบ Work นี้ไม่สามารถเชื่อม Engine นั้นได้ จึงไม่ใช้คำว่า NOT EXECUTED เพื่อปฏิเสธผลของผู้ใช้ แต่ผล rerun โดย Work เป็น **NOT EXECUTED IN THIS ENVIRONMENT** สคริปต์ concurrency เดิมไม่เปลี่ยน; แนบผล rerun ที่ระบุ HEAD กับ final evidence ตาม validation_results.md
+
 ## ทางอัตโนมัติ
 
 ตั้ง `.env` ให้บัญชีผู้พัฒนามี DML/sequence/EXEC permissions แล้วรัน:
