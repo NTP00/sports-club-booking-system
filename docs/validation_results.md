@@ -4,39 +4,40 @@
 
 Repository: `NTP00/sports-club-booking-system`, branch `main`.
 Audit base และ HEAD ก่อนเริ่ม: `c4a1081e5f5c985069844ac15c46d015fbfc2515`.
+QA source/test implementation: `3250e3374ae3297fdb3ffca291518780ae08942e`.
 
 เกณฑ์: Strict Audit ล่าสุดของ HEAD นี้, FINAL QA + SOURCE FREEZE และ design freeze ของผู้ใช้ ไม่เปลี่ยน production implementation, schema, EER, normalization หรือ BR01–BR14
 
-### ผลรอบนี้ กับผลที่ผู้ใช้รันบนเครื่องจริง
+### Final local SQL Server results — ยืนยันโดยผู้ใช้ 2026-10-05 (Asia/Bangkok)
 
-ผู้ใช้ยืนยันว่า SQL Server จริงสร้าง DB แล้ว, Web App เชื่อมได้, `/health` เป็น database connected, SQL tests เคยผ่าน **58/58** และ concurrency court/equipment ผ่านแล้ว ข้อมูลนี้เป็น **user-reported prior local execution** ไม่ใช่ผล rerun ของ Work และไม่ได้ปฏิเสธว่าผู้ใช้รันสำเร็จ
+ผู้ใช้รายงานว่า final QA ทั้งหมดผ่านบน SQL Server จริงใน local environment รวม real-DB reports integration, mutation detection และ sports_club_app runtime ผล local ด้านล่างบันทึกจากผลที่ผู้ใช้ยืนยันในบทสนทนา ไม่ใช่การ execute SQL Server โดย Work
 
-Work ไม่มี SQL Server endpoint/credential ที่พร้อมใช้: ไม่มี local .env, ไม่มี DB_USER/DB_PASSWORD และ localhost:1433 ไม่เปิด จึงไม่สามารถ rerun Engine หรือพิสูจน์ numerical/mutation test ใหม่ ผลที่ยังไม่รันแสดง **NOT EXECUTED IN THIS ENVIRONMENT** อย่างชัดเจน
+Work ไม่มี SQL Server endpoint/credential ที่พร้อมใช้ ผล Engine ของ Work จึงยังเป็น **NOT EXECUTED IN THIS ENVIRONMENT** ส่วนหลักฐาน runtime สำหรับการปิด QA มาจาก local execution ที่ผู้ใช้รายงานสำเร็จ
 
-| Check | ผล Work รอบนี้ | ขอบเขตหลักฐาน |
-|---|---|---|
-| npm ci | PASS | package-lock เดิม; ติดตั้ง155packages; dependencies ไม่เปลี่ยน |
-| npm test | **61/61 PASS** | 57เดิม +4 development-DB guard/in-memory mutation-construction tests; ไม่ใช่ real-DB numerical assertions |
-| node --check | PASS,22JSfiles | src/scripts/tests รวมไฟล์ใหม่; ไม่รวม node_modules |
-| EJS compile | PASS,10templates | templates ไม่เปลี่ยน |
-| SQL static parse | PASS,118checks,0errors | ScriptDom161.8901.0/TSql150Parser:6SQLfiles +58embeddedcases +1fixturebatch +53JS-generated/harness SQL statements |
-| db:verify | NOT EXECUTED IN THIS ENVIRONMENT | ต้อง query catalog ของ Engine จริง |
-| db:test | NOT EXECUTED IN THIS ENVIRONMENT | suite ยัง58cases; ผู้ใช้รายงาน prior local58/58 |
-| db:concurrency | NOT EXECUTED IN THIS ENVIRONMENT | สคริปต์เดิม; ผู้ใช้รายงาน prior local court/equipment PASS |
-| db:reports | NOT EXECUTED IN THIS ENVIRONMENT | real-DB application-service oracle ใหม่พร้อมรัน |
-| db:reports:mutation | NOT EXECUTED IN THIS ENVIRONMENT | ยังไม่ claim ว่าจับสูตรผิดบน Engine ได้; Node พิสูจน์เพียง compile/scope/source preservation |
-| db:app | NOT EXECUTED IN THIS ENVIRONMENT | ยังไม่ตรวจ principal/permission/HTTP ด้วย sports_club_app จริงใน Work |
+| Check | Work execution | Local execution (user-reported) | ขอบเขตหลักฐาน |
+|---|---|---|---|
+| npm ci | PASS | ไม่ได้ระบุ | package-lock เดิม; Work ติดตั้ง155packages; dependencies ไม่เปลี่ยน |
+| npm test | **61/61 PASS** | **61/61 PASS** | 57เดิม +4 development-DB guard/in-memory mutation-construction tests |
+| node --check | PASS,22JSfiles | ไม่ได้ระบุ | src/scripts/tests รวมไฟล์ใหม่; ไม่รวม node_modules |
+| EJS compile | PASS,10templates | ไม่ได้ระบุ | templates ไม่เปลี่ยน |
+| SQL static parse | PASS,118checks,0errors | ไม่ได้ระบุ | ScriptDom161.8901.0/TSql150Parser:6SQLfiles +58embeddedcases +1fixturebatch +53JS-generated/harness SQL statements |
+| db:verify | NOT EXECUTED IN THIS ENVIRONMENT | **PASS** | ตรวจ schema catalog บน SQL Server จริง |
+| db:test | NOT EXECUTED IN THIS ENVIRONMENT | **58/58 PASS** | SQL positive/negative suite |
+| db:concurrency | NOT EXECUTED IN THIS ENVIRONMENT | **PASS court; PASS equipment** | two-session concurrency ทั้งสอง resource |
+| db:reports | NOT EXECUTED IN THIS ENVIRONMENT | **PASS** | 6weekcases ×81resources; numerical oracle/view match; fixture rollback verified |
+| db:reports:mutation | NOT EXECUTED IN THIS ENVIRONMENT | **PASS ทั้งสอง mutation** | confirmed→cancelled และ inclusive+1→+0 ถูก numerical assertion ตรวจจับ |
+| db:app | NOT EXECUTED IN THIS ENVIRONMENT | **PASS** | sports_club_app principal, fn_today EXECUTE, rental function SELECT, real reports(), /health, /, /court_bookings/new, /reports |
 
 SQL static parse ตรวจ grammar เท่านั้น ไม่ใช่ SQL Server execution, binding, permissions หรือ numerical/concurrency PASS
 
-### QA gaps ที่เตรียมปิด
+### QA gaps ที่ปิดด้วย source checks และ local runtime results
 
 - RA01: เพิ่ม `tests/reports.integration.js` เรียก production `createService(transactionDatabase).reports(week)` ผ่าน mssql.Request/Transaction จริง ไม่แก้ service และไม่ใช้ mock numerical result ตรวจ6กรณีสัปดาห์กับ literal oracle และ `dbo.vw_FacilityUtilizationReport` ทั้ง81resourcesต่อกรณี
 - Court:60min/6720min=0.89%,90sec=1.5min=0.02%, Sunday/Monday boundaries และ confirmed/cancelled Equipment:2ชิ้น×inclusive2days=4piece-days/70=5.71%, returned/actual-return day, overdue, cross-week, zero usage และ stock0→percentNULL ทุกแถวตรวจ week_start/utilized_units/capacity_units/utilization_percent
 - Fixture เป็น transaction เดียวกับ service ใช้ reserved IDs และ explicit DB_TEST_DATABASE opt-in ถ้าชนจะหยุด ไม่ลบ/ทับข้อมูล ทุกครั้ง rollback/ตรวจ residue0 ไม่มี hard delete ประวัติหรือ sequence reset
 - `scripts/test_report_mutations.js` ต้อง baseline ผ่านก่อน จากนั้นโหลด reports() ที่เปลี่ยน confirmed→cancelled และ inclusive+1→+0 ชั่วคราวใน memory ต้องเกิด **service numerical assertion** ทั้งสอง mutation SQL/permission/connection/view/cleanup error ไม่นับเป็น detection Source บน disk ไม่ถูกแก้ และตรวจ byte-identical ก่อนจบ
 - `scripts/verify_app_runtime.js` read-only ตรวจ actual sports_club_app principal, EXECUTE fn_today (grant ใน c4a1081), rental function SELECT, service reports() จริง และ HTTP /health, /, /court_bookings/new, /reports
-- RA02: อัปเดต inventory, concurrency context, README และ evidence นี้ แยก current Work checks จากผล prior local Engine
+- RA02: อัปเดต inventory, concurrency context, README และ evidence นี้ แยก Work checks จากผล final local Engine ที่ผู้ใช้รายงาน ทุก required runtime check ผ่านตามผลยืนยันล่าสุด
 
 ### Final source audit
 
@@ -47,7 +48,7 @@ SQL static parse ตรวจ grammar เท่านั้น ไม่ใช�
 - Complex Queries Q01–Q10 ยังครบ10; mock data ยัง4615rows:facilities20,courts40,members600,bookings1200,equipment40,rentals800,payments1850,staff25,maintenance40
 - แก้เฉพาะ test/verification, package commands และเอกสารหลักฐาน ไม่มี production logic/UI changes ไม่มี .env/credential/node_modules/generated logs/test residue หรือ applied mutation ใน source ที่เตรียม commit
 
-### Commands บนเครื่อง local เพื่อปิด evidence ใหม่
+### Commands สำหรับทำซ้ำ final regression บนเครื่อง local
 
 ตั้ง `.env` เดิมเป็นบัญชี developer/test กับ development DB ที่ตรงกับ DB_TEST_DATABASE แล้วรันใน repository root (PowerShell):
 
@@ -65,7 +66,7 @@ npm run db:reports:mutation
 
 จากนั้นใช้ `.env` บัญชี sports_club_app เดิม แล้วรัน `npm run db:app` ไม่เพิ่มสิทธิ์ให้ผ่าน test และไม่ใส่ credential ใน Git/log evidence เก็บ commit SHA และผลจริง ถ้า baseline numerical mismatch ให้หยุด วิเคราะห์ก่อนเปลี่ยน production logic
 
-**Final verdict รอบ Work: NOT READY FOR SOURCE FREEZE** จนมีผล real-DB integration/mutation และ app-account verification ใหม่ ไม่มี production defect ใหม่ที่ reproduce/ยืนยันจาก checks รอบนี้ ไม่ claim SQL runtime PASS หรือ PROJECT READY FOR SUBMISSION
+**Final verdict: READY FOR SOURCE FREEZE** ตาม source/static checks ของ Work และ final real-SQL-Server QA ที่ผู้ใช้ยืนยันครบแล้ว ไม่มี confirmed issue คงค้างจาก Strict Audit ล่าสุด ผู้ใช้ยืนยันว่าไม่มี schema/EER/normalization/business-rule changes การอัปเดตผลนี้แก้เฉพาะเอกสาร ไม่เปลี่ยน production source หรือ tests
 
 ## Historical Strict Audit fix evidence (42f3009)
 

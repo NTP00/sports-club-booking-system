@@ -2,7 +2,7 @@
 
 ต้องใช้ SQL Server จริง การอ่านโค้ด/ผ่าน syntax parser ยังไม่ใช่หลักฐานว่า concurrency test ผ่าน ดูผลที่ยืนยันแล้วใน validation_results.md
 
-Final QA context: ผู้ใช้ยืนยันว่าเคยรัน court/equipment concurrency ผ่านบนเครื่อง SQL Server จริงแล้ว รอบ Work นี้ไม่สามารถเชื่อม Engine นั้นได้ จึงไม่ใช้คำว่า NOT EXECUTED เพื่อปฏิเสธผลของผู้ใช้ แต่ผล rerun โดย Work เป็น **NOT EXECUTED IN THIS ENVIRONMENT** สคริปต์ concurrency เดิมไม่เปลี่ยน; แนบผล rerun ที่ระบุ HEAD กับ final evidence ตาม validation_results.md
+Final QA 2026-10-05 (Asia/Bangkok): ผู้ใช้รายงาน final `db:concurrency` บน SQL Server จริงใน local environment เป็น **PASS court และ PASS equipment** พร้อม final reports integration/mutation และ app runtime PASS ดูผลรวมใน validation_results.md สคริปต์ concurrency เดิมไม่เปลี่ยน Work ไม่ได้ execute Engine ซ้ำ; ผล local นี้เป็น user-reported execution
 
 ## ทางอัตโนมัติ
 
