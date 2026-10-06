@@ -9,7 +9,7 @@ Node.js 20+ → Express / EJS → `mssql` connection pool → SQL Server 2019/20
 ## Clone repository
 
 ```bash
-git clone https://github.com/NTP00/sports-club-booking-system.git
+git clone https://github.com/Sushinull/sports-club-booking-system.git
 cd sports-club-booking-system
 ```
 
